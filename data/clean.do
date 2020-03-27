@@ -1,0 +1,1 @@
+rm *.csv.gz *.rds
