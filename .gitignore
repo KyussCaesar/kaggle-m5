@@ -1,0 +1,6 @@
+data/*
+!data/.gitkeep
+packrat/lib*/
+!packrat/init.R
+!packrat/packrat.lock
+!packrat/packrat.opts

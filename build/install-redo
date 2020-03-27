@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -exuo pipefail
+
+git clone https://github.com/apenwarr/redo.git
+cd redo
+
+# checkout the latest released version at the time of writing, 0.43a
+git checkout a60949135dcc9f0cf6d7366c23ff3e8ea18ce915
+
+./do -j0 test
+
+echo "export PATH=$PATH:$(pwd)/bin" >> ~/.bashrc

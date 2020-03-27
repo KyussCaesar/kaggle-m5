@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+get-port () {
+    sleep 2
+    printf "\nhttp://$(docker port kyuss-caesar-kaggle-m5 8787)\n\r\n"
+}
+
+get-port &
+
+if [ -z "$*" ]
+then
+    USER_ARG="--user root"
+else
+    USER_ARG="--user rstudio"
+fi
+
+docker run \
+-it --rm \
+--name kyuss-caesar-kaggle-m5 \
+$USER_ARG \
+-e DISABLE_AUTH=true \
+-p "127.0.0.1:0:8787" \
+kyuss-caesar/kaggle-m5:latest \
+"$@"

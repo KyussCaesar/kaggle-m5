@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  rstudio:
+    image: kyuss-caesar/kaggle-m5:latest
+
+    environment:
+      - DISABLE_AUTH=true
+
+    ports:
+      - "127.0.0.1:0:8787"
+
+    volumes:
+      - ".:/home/rstudio"
+
