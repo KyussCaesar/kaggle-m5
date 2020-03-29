@@ -5,6 +5,7 @@ install.packages(
     "R.utils",
     "dtplyr",
     "here",
-    "logging"
+    "logging",
+    "plotly"
   )
 )

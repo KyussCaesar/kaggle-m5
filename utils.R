@@ -1,3 +1,15 @@
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(data.table)
+  library(dtplyr)
+  library(dplyr)
+  library(here)
+  library(logging)
+})
+
+basicConfig()
+
 #' Print an expression and it's value
 #' Returns the value, invisibly
 debugit = function(x) {
@@ -122,3 +134,68 @@ replace_na_all = compiler::cmpfun(function(x) {
   x
 })
 
+#' redo-ifchange the targets
+redo = function(argv, ..., cmd=NULL) {
+
+  argv = c(argv, ...)
+
+  realcmd =
+    if (is.null(cmd)) {
+      "redo-ifchange"
+    } else if (cmd %in% c("", "redo")) {
+      "redo"
+    } else {
+      paste0("redo-", cmd)
+    }
+
+  msg = function(x) {
+    logerror(
+      "command line:\n\n    %s %s\n\nfailed with code %i",
+      realcmd,
+      paste(shQuote(argv), collapse = " "),
+      x
+    )
+  }
+
+  ec =
+    system2(
+      realcmd, argv,
+      stdout = "", stderr = "",
+      wait = TRUE, timeout = 0
+    )
+
+  assert(ec == 0, msg)
+
+}
+
+#' `redo-ifchange` the targets and load them in from RDS.
+#' Loads the targets into the specified env, by default, the global one.
+#' Passing `.env=NULL` will instead load the items into a `list()` and return that.
+redo_load = function(..., .env=.GlobalEnv) {
+  argv = c(...)
+
+  redo(argv)
+
+  dest =
+    if (is.null(.env)) {
+      list()
+    } else {
+      .env
+    }
+
+  for (k in names(argv)) {
+    dest[[k]] = readRDS(argv[[k]])
+  }
+
+  invisible(dest)
+}
+
+#' like `redo`, but put args through `here` first
+redo_here = function(..., cmd=NULL) {
+  redo(here(c(...)), cmd = cmd)
+}
+
+#' Reload this file; useful for interactive sessions.
+reload_utils = function() {
+  source(here("utils.R"))
+}

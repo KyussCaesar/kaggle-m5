@@ -1,0 +1,41 @@
+---
+title: 'EDA: Prices'
+author: "Antony"
+date: "2020-03-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(plotly)
+```
+
+```{r data}
+redo_load(
+  stores = here("data/stores.sales_train_validation.extract.rds"),
+  items  = here("data/items.sales_train_validation.extract.rds"),
+  prices = here("data/prices.sell_prices.extract.rds")
+)
+```
+
+# Explore Prices
+
+```{r prices}
+set.seed(2542589)
+ck_stores = sample(stores[["store_id"]], 4)
+ck_items = sample(items[["item_id"]], 3)
+
+prices[
+  item_id %in% ck_items
+] %>%
+  merge(stores[,c("store_id", "state_id", "store_id_state")], by = c("store_id"), all.x = TRUE) %>%
+  as_tibble() %>%
+  mutate(
+    item_id = paste0("item_id=", item_id),
+    store_id = paste0("store_id=", store_id),
+    state_id = paste0("state_id=", state_id),
+    store_id_state = paste0("store_id_state=", store_id_state)
+  ) %>%
+  plotf(price ~ d + store_id_state + state_id + item_id, geom=geom_line) %>%
+  ggplotly()
+```

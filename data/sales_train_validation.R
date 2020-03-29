@@ -1,4 +1,3 @@
-
 loginfo("create states lookup")
 states =
   df %>%

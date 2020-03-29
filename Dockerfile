@@ -13,6 +13,8 @@ WORKDIR /home/rstudio
 
 COPY . .
 
+RUN build/install-system
+
 RUN build/install-redo
 
 ENV R_INSTALL_STAGED=false
