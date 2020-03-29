@@ -4,3 +4,4 @@ packrat/lib*/
 !packrat/init.R
 !packrat/packrat.lock
 !packrat/packrat.opts
+docs/_site.yml
