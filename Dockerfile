@@ -13,11 +13,11 @@ WORKDIR /home/rstudio
 
 COPY . .
 
+ENV R_INSTALL_STAGED=false
+RUN build/install-redo
+RUN build/install-tidyverse
+
 RUN build/install-system
 
-RUN build/install-redo
-
-ENV R_INSTALL_STAGED=false
-RUN build/install-tidyverse
 RUN build/install-rpkgs
 
