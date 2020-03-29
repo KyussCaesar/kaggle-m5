@@ -5,3 +5,4 @@ packrat/lib*/
 !packrat/packrat.lock
 !packrat/packrat.opts
 docs/_site.yml
+docs/*_cache
