@@ -1,0 +1,10 @@
+#!/usr/bin/env Rscript
+install.packages(
+  c(
+    "data.table",
+    "R.utils",
+    "dtplyr",
+    "here",
+    "logging"
+  )
+)

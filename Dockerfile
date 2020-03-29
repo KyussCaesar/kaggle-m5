@@ -15,3 +15,7 @@ COPY . .
 
 RUN build/install-redo
 
+ENV R_INSTALL_STAGED=false
+RUN build/install-tidyverse
+RUN build/install-rpkgs
+
