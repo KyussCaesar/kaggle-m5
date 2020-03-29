@@ -1,0 +1,6 @@
+# default to ignore everything
+# most of the stuff we need is mounted inside at runtime
+*
+
+# put any build-time scripts in here
+!build/*

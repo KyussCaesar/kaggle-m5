@@ -17,13 +17,9 @@ if (FALSE) {
   converter = sprintf("%s.R", basen)
 }
 
-source(here::here("utils.R"))
-redo(inputfile, converter, here("utils.R"))
+redo(inputfile, converter)
 
-debugit(inputfile)
-debugit(converter)
-
-.nologs = FALSE
+.nologs = TRUE
 if (.nologs) {
   loginfo = function(...) {invisible(NULL)}
 } else {
@@ -77,3 +73,4 @@ dur <- system.time({
 })
 
 loginfo("result saved to %s, took %0.2f seconds", dst, dur[3])
+

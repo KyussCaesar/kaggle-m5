@@ -1,7 +1,7 @@
 WHAT=$(echo "$1" | cut -f1 -d'.')
 FROM=$(echo "$1" | cut -f2 -d'.').rds
 
-redo-ifchange $FROM
+redo-ifchange "$FROM"
 
 R --slave <<EOF
 dd = readRDS("$FROM")
