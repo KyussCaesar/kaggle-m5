@@ -1,1 +1,1 @@
-find . -name '*.csv.gz' -or -name '*.rds' -exec rm {} \;
+find . -name '*.rds' -exec rm {} \;

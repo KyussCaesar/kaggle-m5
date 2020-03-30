@@ -6,6 +6,7 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(here)
   library(logging)
+  library(plotly)
 })
 
 basicConfig()
@@ -55,11 +56,64 @@ linspace = compiler::cmpfun(function(start, stop, n) {
 })
 
 #' Create a plot from formula
-plotf = function(df, f, geom=geom_point) {
+plotf = function(df, f, geom=geom_point, verbose=FALSE) {
+
+  msg =
+    if (verbose) {
+      function(...) {
+        message("plotf: ", ...)
+      }
+    } else {
+      function(...) {}
+    }
+
+  # instantiate geom
+  if (is.function(geom)) {
+    msg("instantiate geom")
+    geom = geom()
+  }
+
+  # processing for colour col
+  # if low cardinality, coerce to character
+  # otherwise leave it
+  colour_col = function(nn) {
+    msg("check colour col: ", nn)
+
+    if (cardinality(df[[nn]]) < 7) {
+      msg("converting colour col: ", nn)
+      df[[nn]] <<- as.character(df[[nn]])
+    }
+  }
+
+  # processing for faceting cols
+  # if not character replace col with `colname=col`
+  # nice for ggplot, if you have faceting variables that are just numbers and you
+  # forget which axis is which in the facet plot
+  facet_col = function(nn) {
+    msg("check facet col: ", nn)
+
+    if (!is.character(df[[nn]])) {
+      msg("convert facet col: ", nn)
+      df[[nn]] <<- paste0(nn, "=", df[[nn]])
+    }
+  }
+
+  # for boxplot, you want the x to be factor
+  boxplot_col = function(nn) {
+    msg("check boxplot col: ", nn)
+
+    if ("GeomBoxplot" %in% class(geom$geom)) {
+      msg("convert boxplot col: ", nn)
+      df[[nn]] <<- as.character(df[[nn]])
+    }
+  }
+
   p <- NULL
   if (length(f) == 2) {
-    # histogram
-    p <- ggplot(df, aes(x=!!f[[2]])) + geom_histogram()
+    msg("histogram")
+    p <- function() {
+      ggplot(df, aes(x=!!f[[2]])) + geom_histogram()
+    }
 
   } else if (length(f) == 3) {
     # scatter plot
@@ -69,7 +123,12 @@ plotf = function(df, f, geom=geom_point) {
     if (length(y) != 1) stop("bad formula")
 
     if (length(x) == 1) {
-      p <- ggplot(df, aes(x=!!x, y=!!y)) + geom()
+      msg("scatter: x: ", x, " y: ", y)
+      boxplot_col(x)
+
+      p <- function() {
+        ggplot(df, aes(x=!!x, y=!!y)) + geom
+      }
     }
 
     if (length(x) == 3) {
@@ -78,7 +137,13 @@ plotf = function(df, f, geom=geom_point) {
       x = x[[2]]
 
       if (length(x) == 1) {
-        p <- ggplot(df, aes(y=!!y, x=!!x, colour=!!colour)) + geom()
+        msg("scatter with colour: x: ", x, " y: ", y, " colour: ", colour)
+        boxplot_col(x)
+        colour_col(colour)
+
+        p <- function() {
+          ggplot(df, aes(y=!!y, x=!!x, colour=!!colour)) + geom
+        }
       }
 
       if (length(x) == 3) {
@@ -88,10 +153,15 @@ plotf = function(df, f, geom=geom_point) {
         x = x[[2]]
 
         if (length(x) == 1) {
-          p <-
+          boxplot_col(x)
+          colour_col(colour)
+          facet_col(wrap)
+
+          p <- function() {
             ggplot(df, aes(y=!!y, x=!!x, colour=!!colour)) +
-            geom() +
+            geom +
             facet_wrap(vars(!!wrap))
+          }
         }
 
         if (length(x) == 3) {
@@ -102,13 +172,19 @@ plotf = function(df, f, geom=geom_point) {
           x = x[[2]]
 
           if (length(x) == 1) {
-            p <-
+            boxplot_col(x)
+            colour_col(colour)
+            facet_col(wrap)
+            facet_col(grid)
+
+            p <- function() {
               ggplot(df, aes(y=!!y, x=!!x, colour=!!colour)) +
-              geom() +
+              geom +
               facet_grid(
                 rows = vars(!!grid),
                 cols = vars(!!wrap)
               )
+            }
 
           } else {
             stop("bad formula")
@@ -125,7 +201,8 @@ plotf = function(df, f, geom=geom_point) {
     stop("bad formula")
   }
 
-  return(p)
+  msg("generating plot...")
+  return(p())
 }
 
 # replace all of the NAs with 0
@@ -135,9 +212,9 @@ replace_na_all = compiler::cmpfun(function(x) {
 })
 
 #' redo-ifchange the targets
-redo = function(argv, ..., cmd=NULL) {
+redo = function(..., cmd=NULL, stdin="", verbose = FALSE) {
 
-  argv = c(argv, ...)
+  argv = c(...)
 
   realcmd =
     if (is.null(cmd)) {
@@ -148,11 +225,19 @@ redo = function(argv, ..., cmd=NULL) {
       paste0("redo-", cmd)
     }
 
+  cmdline = paste(realcmd, paste(shQuote(argv), collapse = " "))
+  if (stdin != "") {
+    cmdline = paste0(cmdline, " <", shQuote(stdin))
+  }
+
+  if (verbose) {
+    message("redo: ", cmdline)
+  }
+
   msg = function(x) {
     logerror(
-      "command line:\n\n    %s %s\n\nfailed with code %i",
-      realcmd,
-      paste(shQuote(argv), collapse = " "),
+      "command line:\n\n    %s\n\nfailed with code %i",
+      cmdline,
       x
     )
   }
@@ -160,7 +245,7 @@ redo = function(argv, ..., cmd=NULL) {
   ec =
     system2(
       realcmd, argv,
-      stdout = "", stderr = "",
+      stdout = "", stderr = "", stdin = stdin,
       wait = TRUE, timeout = 0
     )
 
@@ -193,6 +278,11 @@ redo_load = function(..., .env=.GlobalEnv) {
 #' like `redo`, but put args through `here` first
 redo_here = function(..., cmd=NULL) {
   redo(here(c(...)), cmd = cmd)
+}
+
+#' redo-stamp the file
+redo_stamp = function(ff) {
+  redo(cmd="stamp", stdin=ff)
 }
 
 #' Reload this file; useful for interactive sessions.

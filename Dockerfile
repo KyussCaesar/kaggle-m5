@@ -13,7 +13,7 @@ WORKDIR /home/rstudio
 
 COPY . .
 
-ENV R_INSTALL_STAGED=false
+ENV R_INSTALL_STAGED=false R_ENABLE_JIT=3
 RUN build/install-redo
 RUN build/install-tidyverse
 

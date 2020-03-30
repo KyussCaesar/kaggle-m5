@@ -1,11 +1,27 @@
 #!/usr/bin/env Rscript
-install.packages(
-  c(
-    "data.table",
-    "R.utils",
-    "dtplyr",
-    "here",
-    "logging",
-    "plotly"
+
+# install dependencies
+install = function(pkgs) {
+
+  # try to byte-compile all installed packages
+  # note: not all packages work with --byte-compile
+  # if something breaks, do it in a special case
+
+  # also try to use multiple CPUs for install; speedy
+
+  install.packages(
+    pkgs,
+    type = "source",
+    INSTALL_opts = "--byte-compile",
+    Ncpus = parallel::detectCores()
   )
-)
+}
+
+install(c(
+  "data.table",
+  "R.utils",
+  "dtplyr",
+  "here",
+  "logging",
+  "plotly"
+))
