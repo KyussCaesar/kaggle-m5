@@ -6,4 +6,3 @@ packrat/lib*/
 !packrat/packrat.opts
 docs/_site.yml
 docs/*_cache
-docs/*_files
