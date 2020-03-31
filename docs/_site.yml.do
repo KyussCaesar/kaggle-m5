@@ -13,11 +13,12 @@ deps = []
 
 for file in sorted(chain(glob("*.Rmd"), glob("*.md"))):
   deps.append(file)
-  
+
   # RMarkdown puts broken links if there are spaces in the filenames...
-  txt = sub(r"\.R?md", "", file)
-  hrf = sub(r" ", "-", txt) + ".html"
-  
+  stem = sub(r"\.R?md", "", file)
+  txt = sub(r"-", " ", stem)
+  hrf = stem + ".html"
+
   navs.append({
     "text": txt,
     "href": hrf,
@@ -25,6 +26,8 @@ for file in sorted(chain(glob("*.Rmd"), glob("*.md"))):
 
 # close_fds defaults to True, causes broken --jobserver-auth for redo
 run(["redo-ifchange", *deps], check=True, close_fds=False)
+
+fig_scale = 2.5
 
 site = {
   "name": "kyuss-caesar/kaggle-m5",
@@ -35,7 +38,17 @@ site = {
   },
   "output": {
     "html_document": {
-      "toc": True
+      "toc": True,
+      "toc_float": True,
+      "theme": "cosmo",
+      "highlight": "kate",
+      "css": "styles.css",
+      "fig_width": 4*fig_scale,
+      "fig_height": 3*fig_scale,
+      "fig_caption": True,
+      "includes": {
+        "in_header": "content/header.html"
+      }
     }
   }
 }

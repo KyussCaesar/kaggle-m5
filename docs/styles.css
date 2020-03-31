@@ -1,0 +1,21 @@
+p.caption {
+    font-size: 0.9em;
+    font-style: italic;
+    color: grey;
+    margin-right: 10%;
+    margin-left: 10%;  
+}
+
+code {
+  font-family: "Liberation Mono", monospace;
+}
+
+.github-corner {
+  fill: #151513;
+  color: #fff;
+  position: absolute;
+  top: 50;
+  border: 0;
+  right: 0;
+}
+

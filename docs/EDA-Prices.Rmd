@@ -1,0 +1,52 @@
+---
+title: 'EDA: Prices'
+author: "Antony"
+date: "2020-03-29"
+---
+
+```{r setup, include=FALSE}
+scale = 2.5
+knitr::opts_chunk$set(
+  echo = TRUE, cache = TRUE,
+  fig.align = "centre",
+  fig.width = 4*scale,
+  fig.height = 3*scale
+)
+
+# sub-sample items based on frequency
+# not used but code kept here for now
+# set.seed(2542589)
+# ck_items =
+#   items %>%
+#   lazy_dt() %>%
+#   count(dept_id, cat_id) %>%
+#   rename(Freq = n) %>%
+#   merge(items, all.y = TRUE) %>%
+#   sample_n(6, replace = TRUE, weight = Freq) %>%
+#   pull(item_id)
+
+```
+
+# Load data
+
+```{r data}
+redo_load(
+  stores = here("data/stores.rds"),
+  items  = here("data/items.rds"),
+  prices = here("data/prices.rds")
+)
+```
+
+# Prices by department and category
+
+No plotly for this; it's quite slow.
+
+```{r prices_by_dept}
+prices %>%
+  merge(
+    items[,c("item_id", "dept_id", "cat_id")],
+    by = "item_id",
+    all.x = TRUE
+  ) %>%
+  plotf(price ~ dept_id + cat_id, geom=geom_boxplot)
+```

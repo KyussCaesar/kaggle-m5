@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONTAINER_NAME=kaggle-m5-$(shuf -zer -n8 {a..z})
+CONTAINER_NAME=kaggle-m5-$(shuf -er -n8 {a..z} | tr -d '\n')
 
 get-port () {
     sleep 2

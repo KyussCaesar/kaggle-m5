@@ -23,5 +23,6 @@ install(c(
   "dtplyr",
   "here",
   "logging",
-  "plotly"
+  "plotly",
+  "DT"
 ))
