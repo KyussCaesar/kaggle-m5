@@ -21,3 +21,6 @@ RUN build/install-system
 
 RUN build/install-rpkgs
 
+# Configure session timeout: disabled
+RUN echo "session-timeout-minutes=0" >>/etc/rstudio/rsession.conf
+

@@ -9,9 +9,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
+<meta name="author" content="Antony" />
 
+<meta name="date" content="2020-03-29" />
 
-<title>kyuss-caesar/kaggle-m5</title>
+<title>EDA: Prices</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -289,12 +291,53 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">kyuss-caesar/kaggle-m5</h1>
+<h1 class="title toc-ignore">EDA: Prices</h1>
+<h4 class="author">Antony</h4>
+<h4 class="date">2020-03-29</h4>
 
 </div>
 
+<div id="TOC">
+<ul>
+<li><a href="#load-data">Load data</a></li>
+<li><a href="#prices-by-department-and-category">Prices by department and category</a></li>
+</ul>
+</div>
 
-<p>Hello, world!</p>
+<div id="load-data" class="section level1">
+<h1>Load data</h1>
+<pre class="r"><code>redo_load(
+  stores = here(&quot;data/stores.rds&quot;),
+  items  = here(&quot;data/items.rds&quot;),
+  prices = here(&quot;data/prices.rds&quot;)
+)</code></pre>
+</div>
+<div id="prices-by-department-and-category" class="section level1">
+<h1>Prices by department and category</h1>
+<p>No plotly for this; it’s quite slow.</p>
+<pre class="r"><code>set.seed(2542589)
+
+ck_items =
+  items %&gt;%
+  lazy_dt() %&gt;%
+  count(dept_id, cat_id) %&gt;%
+  rename(Freq = n) %&gt;%
+  merge(items, all.y = TRUE) %&gt;%
+  sample_n(30, replace = TRUE, weight = Freq) %&gt;%
+  pull(item_id)
+
+prices[
+  item_id %in% ck_items
+] %&gt;%
+  merge(
+    items[,c(&quot;item_id&quot;, &quot;dept_id&quot;, &quot;cat_id&quot;)],
+    by = &quot;item_id&quot;,
+    all.x = TRUE
+  ) %&gt;%
+  plotf(price ~ dept_id + cat_id, geom=geom_boxplot)</code></pre>
+<pre><code>## Warning: Removed 109459 rows containing non-finite values (stat_boxplot).</code></pre>
+<p><img src="EDA-Prices_files/figure-html/prices_by_dept-1.png" width="960" /></p>
+</div>
 
 
 
