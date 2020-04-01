@@ -1,0 +1,16 @@
+### by `r splitter`
+
+```{r, echo=FALSE}
+set.seed(523442089)
+sales %>%
+  data.table::copy() %>%
+  lazy_dt(immutable = TRUE) %>%
+  filter(target_id %in% sample(target_id, 24)) %>%
+  group_by(d, target_id) %>%
+  group_by_at(splitter, .add = TRUE) %>%
+  summarise_at("volume", sum) %>%
+  ungroup() %>%
+  as.data.table() %>%
+  plotf(volume ~ d + target_id + splitter, geom=geom_line) %>%
+  ggplotly()
+```

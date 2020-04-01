@@ -30,9 +30,7 @@ df_out =
   left_join( states[,c("state_id" , "state_name" )], by = c("state_name" )) %>%
   select(-ends_with("_name")) %>%
   # gather/pivot_longer are not implemented in dtplyr :(
-  # try pass the lazy_dt directly into `melt`? works for `merge` but I think it
-  # just reverts to data.frame ...
-  # as.data.table() %>%
+  as.data.table() %>%
   melt(measure.vars = patterns("d_")) %>%
   lazy_dt() %>%
   mutate(

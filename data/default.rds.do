@@ -24,9 +24,15 @@ if (.nologs) {
 # expect converter to set this var
 df_out = NULL
 
+srcargs = list(converter)
+if (!.nologs) {
+  srcargs[["echo"]] = TRUE
+  srcargs[["keep.source"]] = TRUE
+}
+
 # use the converter for the specified target to perform the conversion
 dur <- system.time({
-  source(converter, echo = TRUE)
+  source(converter, echo = TRUE, keep.source = TRUE)
 })
 
 loginfo("call %s, took %0.2f seconds", converter, dur[3])

@@ -1,12 +1,14 @@
 
 suppressPackageStartupMessages({
+  library(plotly)
+  # need to load stats before tidyverse so it doesn't shadow dplyr
+  library(stats)
   library(tidyverse)
   library(data.table)
   library(dtplyr)
   library(dplyr)
   library(here)
   library(logging)
-  library(plotly)
 })
 
 basicConfig()
@@ -73,13 +75,45 @@ plotf = function(df, f, geom=geom_point, verbose=FALSE) {
     geom = geom()
   }
 
+  # resolve column name
+  resolve_colname = function(nn, env = environment(), depth = 0) {
+    nn = as.character(nn)
+
+    msg("resolve colname: ", nn, " depth: ", depth)
+
+    if (is.null(nn)) {
+      stop("could not resolve ", nn)
+    }
+
+    if (depth > 32) {
+      stop("recursion error while trying to resolve ", nn)
+    }
+
+    if (nn %in% names(df)) {
+      msg("resolve colname: found: ", nn)
+      return(nn)
+    }
+
+    next_try =
+      if (nn %in% names(env)) {
+        env[[nn]]
+      } else {
+        nn
+      }
+
+    msg("resolve colname: next_try: ", next_try)
+    return(resolve_colname(next_try, env = parent.env(env), depth = depth + 1))
+  }
+
   # processing for colour col
   # if low cardinality, coerce to character
   # otherwise leave it
   colour_col = function(nn) {
     msg("check colour col: ", nn)
 
-    if (cardinality(df[[nn]]) < 7) {
+    n_colours = cardinality(df[[nn]])
+
+    if (n_colours < 30) {
       msg("converting colour col: ", nn)
       df[[nn]] <<- as.character(df[[nn]])
     }
@@ -110,9 +144,13 @@ plotf = function(df, f, geom=geom_point, verbose=FALSE) {
 
   p <- NULL
   if (length(f) == 2) {
-    msg("histogram")
+    x = resolve_colname(f[[2]])
+
+    msg("histogram: ", x)
+
     p <- function() {
-      ggplot(df, aes(x=!!f[[2]])) + geom_histogram()
+      ggplot(df, aes_(x=as.name(x))) +
+      geom_histogram()
     }
 
   } else if (length(f) == 3) {
@@ -123,11 +161,14 @@ plotf = function(df, f, geom=geom_point, verbose=FALSE) {
     if (length(y) != 1) stop("bad formula")
 
     if (length(x) == 1) {
+      y = resolve_colname(y)
+      x = resolve_colname(x)
+
       msg("scatter: x: ", x, " y: ", y)
       boxplot_col(x)
 
       p <- function() {
-        ggplot(df, aes(x=!!x, y=!!y)) + geom
+        ggplot(df, aes_(x=as.name(x), y=as.name(y))) + geom
       }
     }
 
@@ -137,12 +178,16 @@ plotf = function(df, f, geom=geom_point, verbose=FALSE) {
       x = x[[2]]
 
       if (length(x) == 1) {
+        y = resolve_colname(y)
+        x = resolve_colname(x)
+        colour = resolve_colname(colour)
+
         msg("scatter with colour: x: ", x, " y: ", y, " colour: ", colour)
         boxplot_col(x)
         colour_col(colour)
 
         p <- function() {
-          ggplot(df, aes(y=!!y, x=!!x, colour=!!colour)) + geom
+          ggplot(df, aes_(y=as.name(y), x=as.name(x), colour=as.name(colour))) + geom
         }
       }
 
@@ -153,14 +198,19 @@ plotf = function(df, f, geom=geom_point, verbose=FALSE) {
         x = x[[2]]
 
         if (length(x) == 1) {
+          y = resolve_colname(y)
+          x = resolve_colname(x)
+          colour = resolve_colname(colour)
+          wrap = resolve_colname(wrap)
+
           boxplot_col(x)
           colour_col(colour)
           facet_col(wrap)
 
           p <- function() {
-            ggplot(df, aes(y=!!y, x=!!x, colour=!!colour)) +
+            ggplot(df, aes_(y=as.name(y), x=as.name(x), colour=as.name(colour))) +
             geom +
-            facet_wrap(vars(!!wrap))
+            facet_wrap(as.name(wrap))
           }
         }
 
@@ -172,17 +222,23 @@ plotf = function(df, f, geom=geom_point, verbose=FALSE) {
           x = x[[2]]
 
           if (length(x) == 1) {
+            y = resolve_colname(y)
+            x = resolve_colname(x)
+            colour = resolve_colname(colour)
+            wrap = resolve_colname(wrap)
+            grid = resolve_colname(grid)
+
             boxplot_col(x)
             colour_col(colour)
             facet_col(wrap)
             facet_col(grid)
 
             p <- function() {
-              ggplot(df, aes(y=!!y, x=!!x, colour=!!colour)) +
+              ggplot(df, aes_(y=as.name(y), x=as.name(x), colour=as.name(colour))) +
               geom +
               facet_grid(
-                rows = vars(!!grid),
-                cols = vars(!!wrap)
+                rows = as.name(grid),
+                cols = as.name(wrap)
               )
             }
 
@@ -283,6 +339,19 @@ redo_here = function(..., cmd=NULL) {
 #' redo-stamp the file
 redo_stamp = function(ff) {
   redo(cmd="stamp", stdin=ff)
+}
+
+#' Setup for RMD
+rmdsetup = function() {
+  scale = 2.5
+  knitr::opts_chunk$set(
+    echo = TRUE,
+    # cache = TRUE,
+    cache = FALSE,
+    fig.align = "centre",
+    fig.width = 4*scale,
+    fig.height = 3*scale
+  )
 }
 
 #' Reload this file; useful for interactive sessions.

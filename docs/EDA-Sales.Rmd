@@ -1,0 +1,43 @@
+---
+title: 'EDA: Sales'
+author: "Antony"
+date: "2020-03-29"
+---
+
+```{r setup, include=FALSE}
+rmdsetup()
+```
+
+# Load data
+
+```{r data}
+redo_load(
+  sales = here("data/sales.rds")
+)
+```
+
+## Sales {.tabset .tabset-fade}
+
+```{r, echo=FALSE, results='asis'}
+splitters = c(
+  "item_id",
+  "store_id",
+  "state_id",
+  "cat_id",
+  "dept_id"
+)
+
+splitter = NULL
+
+res <- lapply(splitters, function(s) {
+  splitter <<- s
+
+  knitr::knit_child(
+    '_sales-by.Rmd', envir = .GlobalEnv, quiet = TRUE
+  )
+})
+
+cat(unlist(res), sep = '\n')
+```
+
+## {-}
