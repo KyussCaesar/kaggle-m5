@@ -12,9 +12,14 @@ navs = []
 deps = []
 
 for file in sorted(chain(glob("*.Rmd"), glob("*.md"))):
+
   deps.append(file)
 
-  # RMarkdown puts broken links if there are spaces in the filenames...
+  # skip those that start with underscore
+  # same as Rmarkdown website would
+  if file[0] == "_":
+    continue
+
   stem = sub(r"\.R?md", "", file)
   txt = sub(r"-", " ", stem)
   hrf = stem + ".html"
