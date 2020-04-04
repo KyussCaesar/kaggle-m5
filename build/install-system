@@ -5,6 +5,7 @@ sudo apt-get update -y
 sudo apt-get install -y \
   tree \
   shellcheck \
+  python3-venv \
   man
 
 sudo rm -rf /var/lib/apt/lists/*

@@ -1,17 +1,11 @@
 
+source("rpkgs.R")
+
 suppressPackageStartupMessages({
-  library(plotly)
-  # need to load stats before tidyverse so it doesn't shadow dplyr
-  library(stats)
-  library(tidyverse)
-  library(data.table)
-  library(dtplyr)
-  library(dplyr)
-  library(here)
-  library(logging)
+  lapply(rpkgs, function(p) library(p, character.only = TRUE))
 })
 
-basicConfig()
+logging::basicConfig()
 
 #' Print an expression and it's value
 #' Returns the value, invisibly

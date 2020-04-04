@@ -4,3 +4,4 @@
 
 # put any build-time scripts in here
 !build/*
+!rpkgs.R

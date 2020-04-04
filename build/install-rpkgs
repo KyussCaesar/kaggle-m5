@@ -17,12 +17,6 @@ install = function(pkgs) {
   )
 }
 
-install(c(
-  "data.table",
-  "R.utils",
-  "dtplyr",
-  "here",
-  "logging",
-  "plotly",
-  "DT"
-))
+source("rpkgs.R")
+install(rpkgs)
+
