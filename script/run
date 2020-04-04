@@ -24,5 +24,8 @@ $USER_ARG \
 -e DISABLE_AUTH=true \
 -p "127.0.0.1:0:8787" \
 -v "$(pwd)":/home/rstudio \
+--gpus all \
 kyuss-caesar/kaggle-m5:latest \
 "$@"
+
+
