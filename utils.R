@@ -1,5 +1,5 @@
 
-source("rpkgs.R")
+source(here::here("rpkgs.R"))
 
 suppressPackageStartupMessages({
   lapply(rpkgs, function(p) library(p, character.only = TRUE))
@@ -325,6 +325,42 @@ redo_load = function(..., .env=.GlobalEnv) {
   invisible(dest)
 }
 
+mk_redo_load_db = function(conn) {
+  function(..., .env=.GlobalEnv) {
+    rl = redo_load(..., .env=NULL)
+
+    dest =
+      if (is.null(.env)) {
+        list()
+      } else {
+        .env
+      }
+
+    for (k in names(rl)) {
+      # copy the table into the DB, along with any indices
+
+      d = rl[[k]]
+
+      dest[[k]] =
+        copy_to(
+          conn, d, name = k,
+          overwrite = TRUE,
+          indexes =
+            lapply(c(key(d), indices(d)), function(x) {
+              strsplit(x, "__", fixed = TRUE)[[1]]
+            })
+        )
+    }
+
+    # rm rl and gc
+    # after all, the idea is this is to reduce memory usage...
+    rm(rl)
+    gc(full = TRUE)
+
+    invisible(dest)
+  }
+}
+
 #' like `redo`, but put args through `here` first
 redo_here = function(..., cmd=NULL) {
   redo(here(c(...)), cmd = cmd)
@@ -335,20 +371,61 @@ redo_stamp = function(ff) {
   redo(cmd="stamp", stdin=ff)
 }
 
-#' Setup for RMD
-rmdsetup = function() {
-  scale = 2.5
-  knitr::opts_chunk$set(
-    echo = TRUE,
-    # cache = TRUE,
-    cache = FALSE,
-    fig.align = "centre",
-    fig.width = 4*scale,
-    fig.height = 3*scale
-  )
-}
-
 #' Reload this file; useful for interactive sessions.
 reload_utils = function() {
   source(here("utils.R"))
+}
+
+#' Take `df` and transform it into the submission format
+make_submission = function(df) {
+  redo_load(
+    items = here("data/items.rds"),
+    stores = here("data/stores.rds")
+  )
+
+  min_dates =
+    data.table(
+      submission_type = c("validation", "evaluation"),
+      min_date = as.integer(c(1914 - 1, 1942 - 1))
+    )
+
+  submission =
+    list(
+      submission_type = c("validation", "evaluation"),
+      horizon = 1:28
+    ) %>%
+    cross_df() %>%
+    as.data.table() %>%
+    lazy_dt(immutable = FALSE) %>%
+    left_join(min_dates, by = "submission_type") %>%
+    transmute(
+      target_d = min_date + horizon,
+      horizon,
+      submission_type
+    ) %>%
+    left_join(
+      df[target_d > (1914 - 1), c("target_d", "item_id", "store_id", "pred")],
+      by = "target_d"
+    ) %>%
+    left_join(
+      items[,c("item_id", "item_name")],
+      by = "item_id"
+    ) %>%
+    left_join(
+      stores[,c("store_id", "store_name")],
+      by = "store_id"
+    ) %>%
+    transmute(
+      id = paste(item_name, store_name, submission_type, sep = "_"),
+      horizon,
+      pred
+    ) %>%
+    as_tibble() %>%
+    pivot_wider(
+      names_from = "horizon",
+      values_from = "pred",
+      names_prefix = "F"
+    )
+
+  submission
 }

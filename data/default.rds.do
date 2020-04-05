@@ -24,6 +24,20 @@ if (.nologs) {
 # expect converter to set this var
 df_out = NULL
 
+# Create a connection to a temporary database.
+# It's useful for some larger joins/transformations, because we can make use
+# of disk instead of running out of memory.
+# Might've made more sense for data results to be stored in DB directly, but the
+# problem is that `redo` only really works with files; there's no way to tell it
+# "the result from making this thing is stored in this DB".
+redo_load_db =
+  mk_redo_load_db(
+    DBI::dbConnect(
+      RSQLite::SQLite(),
+      dbname = ""
+    )
+  )
+
 srcargs = list(converter)
 if (!.nologs) {
   srcargs[["echo"]] = TRUE

@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+kaggle competitions download -c data/m5-forecasting-accuracy

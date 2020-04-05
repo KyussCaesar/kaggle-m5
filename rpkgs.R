@@ -1,7 +1,6 @@
 rpkgs = c(
   "plotly",
-  # need to load stats before tidyverse so it doesn't shadow dplyr
-  "stats",
+  "stats", # need to load stats before tidyverse so it doesn't shadow dplyr
   "tidyverse",
   "R.utils",
   "data.table",
@@ -12,6 +11,8 @@ rpkgs = c(
   "xgboost",
   "broom",
   "recipes",
+  "forecast",
+  "tsintermittent",
   "neuralnet",
   "keras"
 )
