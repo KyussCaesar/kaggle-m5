@@ -1,11 +1,59 @@
 
 source(here::here("rpkgs.R"))
-
 suppressPackageStartupMessages({
-  lapply(rpkgs, function(p) library(p, character.only = TRUE))
+  for (p in rpkgs) {
+    packageStartupMessage("\n==== LOAD PKG ", p, "\n")
+
+    # some pkgs load _SO MUCH STUFF_
+    # others, I really only want a couple things at most.
+    # skip loading if they are in this list
+    # can always refer to objects by pkg::object
+    dontload = c(
+      "R.utils",
+      "plotly",
+      "logging",
+      "furrr"
+    )
+
+    if (p %in% dontload) {
+      packageStartupMessage("SKIPPED")
+    } else {
+      library(p, character.only = TRUE)
+    }
+  }
 })
 
 logging::basicConfig()
+loginfo  <- logging::loginfo
+logwarn  <- logging::logwarn
+logerror <- logging::logerror
+
+ggplotly <- plotly::ggplotly
+
+# fork-bombed myself
+# Warning message: [ONE-TIME WARNING] Forked processing
+# ('multicore') is disabled in future (>= 1.13.0) when running R from RStudio,
+# because it is considered unstable. Because of this, plan("multicore") will
+# fall back to plan("sequential"), and plan("multiprocess") will fall back to
+# plan("multisession") - not plan("multicore") as in the past. For more
+# details, how to control forked processing or not, and how to silence this
+# warning in future R sessions, see ?future::supportsMulticore
+#
+# It spawns _sessions_ in the background; it does _not_ fork in RStudio.
+# This is why the local one ran but caused RStudio to hang.
+# (the spawned sessions sourced this script, which spawned more sessions that
+# sourced this script....)
+
+init_workers = function() {
+  nworkers = max(parallel::detectCores() / 2, 1)
+  loginfo("Set future plan to multiprocess with %i workers", nworkers)
+
+  dur <- system.time({
+    future::plan(future::multiprocess, workers = nworkers)
+  })
+
+  print(dur)
+}
 
 #' Print an expression and it's value
 #' Returns the value, invisibly
@@ -23,11 +71,14 @@ cardinality = function(x) length(unique(x))
 count_true  = function(x) length(which(x))
 
 #' Clamp the values in x to between mn, mx
-clamp = function(x, mn, mx) {
-  x[ x < mn ] <- mn
-  x[ x > mx ] <- mx
+#' Pass NULL to ignore bound
+clamp = compiler::cmpfun(function(x, mn, mx) {
+
+  if (!is.null(mn)) x[ x < mn ] <- mn
+  if (!is.null(mx)) x[ x < mx ] <- mx
+
   x
-}
+})
 
 #' Root-mean-square
 rms = function(x) sqrt(mean(x*x))
@@ -130,9 +181,12 @@ plotf = function(df, f, geom=geom_point, verbose=FALSE) {
   boxplot_col = function(nn) {
     msg("check boxplot col: ", nn)
 
-    if ("GeomBoxplot" %in% class(geom$geom)) {
+    if (
+      "GeomBoxplot" %in% class(geom$geom) ||
+      "GeomViolin" %in% class(geom$geom)
+    ) {
       msg("convert boxplot col: ", nn)
-      df[[nn]] <<- as.character(df[[nn]])
+      df[[nn]] <<- sprintf("%02i", df[[nn]])
     }
   }
 
