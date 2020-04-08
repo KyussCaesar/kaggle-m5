@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+logfile=dockerstats.txt
+while :;
+do
+  echo "$(date -Is),$(docker stats --no-stream --format '{{json .}}')" >>$logfile
+  sleep 3
+done
+

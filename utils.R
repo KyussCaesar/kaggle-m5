@@ -45,7 +45,7 @@ ggplotly <- plotly::ggplotly
 # sourced this script....)
 
 init_workers = function() {
-  nworkers = max(parallel::detectCores() / 2, 1)
+  nworkers = clamp(parallel::detectCores(), 1, 4)
   loginfo("Set future plan to multiprocess with %i workers", nworkers)
 
   dur <- system.time({
@@ -53,6 +53,8 @@ init_workers = function() {
   })
 
   print(dur)
+
+  nworkers
 }
 
 #' Print an expression and it's value
