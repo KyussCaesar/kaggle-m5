@@ -103,18 +103,6 @@ dd = unique(sales[["d"]])
 v_cutoff = sample(dd, nfolds, prob = dd)
 debugit(v_cutoff)
 
-mkbar = function(msg, total) {
-  pb <-
-    progress_bar$new(
-      total = total,
-      clear = FALSE,
-      format = sprintf("%s [:bar] :current/:total (:percent) :elapsed elapsed (:eta remain, :tick_rate/s)", msg),
-      width = 90,
-      show_after = 0
-    )
-  pb
-}
-
 # cut down the sales to just what we need
 # this speeds up everything _a lot_
 loginfo("Cut down sales (global)")
@@ -208,9 +196,6 @@ for (i in ci) {
             if (x == 0) return(NULL)
 
             mdl = lm(volume ~ d, data = tail(trn, x))
-            # pred_raw = predict(mdl, tst)
-            # pred = clamp(round(tst[,pred_raw]), 0, NULL)
-
             tibble(mdl = list(mdl))
           }))
 

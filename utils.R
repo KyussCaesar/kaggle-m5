@@ -45,7 +45,7 @@ ggplotly <- plotly::ggplotly
 # sourced this script....)
 
 init_workers = function() {
-  nworkers = clamp(parallel::detectCores(), 1, 4)
+  nworkers = 4
   loginfo("Set future plan to multiprocess with %i workers", nworkers)
 
   dur <- system.time({
@@ -54,7 +54,7 @@ init_workers = function() {
 
   print(dur)
 
-  nworkers
+  invisible(nworkers)
 }
 
 #' Print an expression and it's value
@@ -484,4 +484,17 @@ make_submission = function(df) {
     )
 
   submission
+}
+
+#' Create a new progress bar.
+mkbar = function(msg, total) {
+  pb <-
+    progress_bar$new(
+      total = total,
+      clear = FALSE,
+      format = sprintf("%s [:bar] :current/:total (:percent) :elapsed elapsed (:eta remain, :tick_rate/s)", msg),
+      width = 90,
+      show_after = 0
+    )
+  pb
 }
