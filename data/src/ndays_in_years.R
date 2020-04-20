@@ -1,4 +1,4 @@
-redo_load(ndays_in_mnths = "ndays_in_mnths.rds")
+redo_load(ndays_in_mnths = "ndays_in_mnths.qs")
 
 df_out =
   ndays_in_mnths %>%

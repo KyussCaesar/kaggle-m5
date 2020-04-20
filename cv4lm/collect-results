@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Collect the results from cv4lm.R
+
+set -euo pipefail
+set -x
+
+dbname="cv4lm/cv4lm.db"
+tbname="cvlm"
+sqlite3 -bail -echo $dbname <<EOF
+DROP TABLE IF EXISTS $tbname;
+CREATE TABLE $tbname (
+  cutoff INTEGER
+, target_id INTEGER
+, mdl_win INTEGER
+, horizon INTEGER
+, volume INTEGER
+, mdl_pred INTEGER
+);
+
+-- use write-ahead log; for faster write speed
+PRAGMA journal_mode=WAL;
+EOF
+
+prep_stmt="INSERT INTO $tbname VALUES (:cutoff, :target_id, :mdl_win, :horizon, :volume, :mdl_pred);"
+
+find ./cv4lm/data -name 'lmcv-*.rds' \
+  | parallel -j14 --eta \
+    Rscript cv4lm/cv4lm-results.R "$dbname" "\"$prep_stmt\""
+
+mk-idx () {
+  local IFS="_"
+  idxname="idx_${tbname}_${*}"
+  echo "DROP INDEX IF EXISTS ${idxname};"
+
+  local IFS=","
+  echo "CREATE INDEX ${idxname} ON ${tbname}(${*});"
+}
+
+sqlite3 -bail -echo $dbname <<EOF
+$(mk-idx target_id)
+$(mk-idx mdl_win)
+$(mk-idx mdl_win horizon)
+$(mk-idx mdl_win cutoff)
+$(mk-idx mdl_win cutoff horizon)
+$(mk-idx horizon cutoff)
+$(mk-idx mdl_win target_id)
+$(mk-idx mdl_win horizon target_id)
+$(mk-idx horizon)
+
+ANALYZE;
+EOF
+

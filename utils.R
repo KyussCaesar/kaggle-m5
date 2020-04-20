@@ -12,7 +12,10 @@ suppressPackageStartupMessages({
       "R.utils",
       "plotly",
       "logging",
-      "furrr"
+      "qs",
+      "pryr",
+      "flexdashboard",
+      "zoo"
     )
 
     if (p %in% dontload) {
@@ -30,32 +33,23 @@ logerror <- logging::logerror
 
 ggplotly <- plotly::ggplotly
 
-# fork-bombed myself
-# Warning message: [ONE-TIME WARNING] Forked processing
-# ('multicore') is disabled in future (>= 1.13.0) when running R from RStudio,
-# because it is considered unstable. Because of this, plan("multicore") will
-# fall back to plan("sequential"), and plan("multiprocess") will fall back to
-# plan("multisession") - not plan("multicore") as in the past. For more
-# details, how to control forked processing or not, and how to silence this
-# warning in future R sessions, see ?future::supportsMulticore
-#
-# It spawns _sessions_ in the background; it does _not_ fork in RStudio.
-# This is why the local one ran but caused RStudio to hang.
-# (the spawned sessions sourced this script, which spawned more sessions that
-# sourced this script....)
+ncores = parallel::detectCores()
 
-init_workers = function() {
-  nworkers = 4
-  loginfo("Set future plan to multiprocess with %i workers", nworkers)
+qsave <- function(x, fp) qs::qsave(x, fp, preset = "high", nthreads = ncores)
+qload <- function(fp) qs::qread(fp, strict = TRUE, nthreads = ncores)
 
-  dur <- system.time({
-    future::plan(future::multiprocess, workers = nworkers)
-  })
+len <- length
 
-  print(dur)
-
-  invisible(nworkers)
-}
+rollapply  <- zoo::rollapply  
+rollmaxr   <- zoo::rollmaxr   
+rollmax    <- zoo::rollmax    
+rollsum    <- zoo::rollsum    
+rollapplyr <- zoo::rollapplyr 
+rollsumr   <- zoo::rollsumr   
+rollmean   <- zoo::rollmean   
+rollmedianr<- zoo::rollmedianr
+rollmeanr  <- zoo::rollmeanr  
+rollmedian <- zoo::rollmedian 
 
 #' Print an expression and it's value
 #' Returns the value, invisibly
@@ -375,10 +369,24 @@ redo_load = function(..., .env=.GlobalEnv) {
     }
 
   for (k in names(argv)) {
-    dest[[k]] = readRDS(argv[[k]])
+    dest[[k]] = qload(argv[[k]])
   }
 
   invisible(dest)
+}
+
+#' Shortcut for the general case of `redo_load(foo = here("data/foo.qs"))`
+reload = function(..., .env=.GlobalEnv) {
+  argv = c(...)
+  argv2 = list()
+
+  for (a in argv) {
+    argv2[[a]] = here(sprintf("data/%s.qs", a))
+  }
+
+  argv2[[".env"]] = .env
+
+  invisible(do.call(redo_load, argv2))
 }
 
 mk_redo_load_db = function(conn) {
@@ -439,6 +447,10 @@ make_submission = function(df) {
     stores = here("data/stores.rds")
   )
 
+  stopifnot(all(
+   c("target_d", "item_id", "store_id", "pred") %in% colnames(df)
+  ))
+
   min_dates =
     data.table(
       submission_type = c("validation", "evaluation"),
@@ -497,4 +509,10 @@ mkbar = function(msg, total) {
       show_after = 0
     )
   pb
+}
+
+#' Return a new x without names.
+unnamed = function(x) {
+  names(x) <- NULL
+  x
 }

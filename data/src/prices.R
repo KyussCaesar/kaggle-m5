@@ -1,8 +1,8 @@
 redo_load(
-  df = "sell_prices.csv.rds",
-  stores = "stores.rds",
-  items  = "items.rds",
-  dates  = "dates.rds"
+  df = "sell_prices.csv.qs",
+  stores = "stores.qs",
+  items  = "items.qs",
+  dates  = "dates.qs"
 )
 
 prices_min =

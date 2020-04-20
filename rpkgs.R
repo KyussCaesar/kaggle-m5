@@ -1,4 +1,5 @@
 rpkgs = c(
+  "qs",
   "plotly",
   "stats", # need to load stats before tidyverse so it doesn't shadow dplyr
   "xgboost",
@@ -8,14 +9,17 @@ rpkgs = c(
   "tsintermittent",
   "tidyverse",
   "keras",
-  "furrr",
   "R.utils",
+  "pryr",
+  "flexdashboard",
   "data.table",
   "dtplyr",
   "here",
   "logging",
   "DT",
   "broom",
-  "progress"
+  "progress",
+  "zoo",
+  "glue"
 )
 

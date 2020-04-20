@@ -1,5 +1,5 @@
 redo_load(
-  df = "sales_train_validation.csv.rds"
+  df = "sales_train_validation.csv.qs"
 )
 
 loginfo("create cats lookup")

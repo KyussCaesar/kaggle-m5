@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+set -x
+cd $(basename "$0")
+
+find ./src -name '*.Rc' \
+  | parallel -j1 --eta \
+    R --slave -e 'compiler::loadcmp("{}")'
+

@@ -1,7 +1,7 @@
 redo_load(
-  df = "calendar.csv.rds",
-  ndays_in_years = "ndays_in_years.rds",
-  ndays_in_mnths = "ndays_in_mnths.rds"
+  df = "calendar.csv.qs",
+  ndays_in_years = "ndays_in_years.qs",
+  ndays_in_mnths = "ndays_in_mnths.qs"
 )
 
 mk_yday = function(year, mnth, mday) {

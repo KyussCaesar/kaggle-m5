@@ -17,3 +17,4 @@ df_out =
     mnth,
     ndays_in_mnth = as.integer(sub("[0-9]{4}-[0-9]{2}-", "", d3))
   )
+

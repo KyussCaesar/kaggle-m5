@@ -5,24 +5,27 @@
 # - examine model parameters learned
 
 argv = commandArgs(TRUE)
-chunk = argv[3]
 
-sink(paste0(chunk, ".log"))
-
+# debug values
 # argv = c(
 #   "cv4lm.db",
 #   "INSERT INTO cvlm VALUES (:chunk_name, :cutoff, :target_id, :mdl_win, :mdl_coef, :mdl_coef_stderr, :mdl_coef_statistic, :mdl_coef_pvalue, :horizon, :volume, :mdl_pred, :mdl_err);",
 #   "lmcv-0001.rds"
 # )
 
+chunk = argv[3]
+
+# suppress all output
+logfile = file(paste0(chunk, ".log"), open = "wt")
+sink(logfile, type = "output")
+sink(logfile, type = "message")
+
 conn <- DBI::dbConnect(RSQLite::SQLite(), dbname = argv[1])
 
 # set the busy_timeout
 # this is to allow this process to wait for another writer to finish writing
 # before this one can start writing
-pbt = DBI::dbSendStatement(conn, "PRAGMA busy_timeout = 10000;")
-DBI::dbClearResult(pbt)
-pbt = DBI::dbSendStatement(conn, "PRAGMA wal_autocheckpoint=-1;")
+pbt = DBI::dbSendStatement(conn, "PRAGMA busy_timeout = 100000000;")
 DBI::dbClearResult(pbt)
 
 prep_stmt = argv[2]
@@ -35,33 +38,28 @@ rs = DBI::dbSendStatement(conn, prep_stmt)
 cr =
   chunk %>%
   readRDS() %>%
-  head(10) %>%
   transmute(
-    chunk_name = chunk,
     cutoff,
     target_id,
+    # note: compiling this function actually make things _slower_
     res = pmap(list(res, tst), function(res, tst) {
       res2 =
         res %>%
         unnest(cols = c("res")) %>%
         transmute(
           mdl_win  = as.integer(value),
-          mdl_coef = lapply(mdl, function(m) tidy(m)[2,]),
-          mdl_pred = lapply(mdl, function(m) clamp(round(predict(m, tst)), 0, NULL)),
-          volume   = list(tst[,volume]),
-          mdl_err  = list(volume[[1]] - mdl_pred[[1]])
+          mdl_pred = lapply(mdl, function(m) clamp(predict(m, tst), 0, NULL)),
+          volume   = list(tst[,volume])
         ) %>%
-        unnest(cols = c(mdl_coef, mdl_pred, volume, mdl_err)) %>%
+        unnest(cols = c(
+          mdl_pred,
+          volume
+        )) %>%
         transmute(
           mdl_win,
-          mdl_coef = estimate,
-          mdl_coef_stderr = std.error,
-          mdl_coef_statistic = statistic,
-          mdl_coef_pvalue = p.value,
           horizon = as.integer(1:n()),
           volume,
-          mdl_pred,
-          mdl_err
+          mdl_pred
         )
 
       res2
@@ -75,6 +73,9 @@ cr =
 invisible(DBI::dbClearResult(rs))
 DBI::dbCommit(conn)
 DBI::dbDisconnect(conn)
+
+# warnings can cause a non-zero exit status
+quit(save = "no", status = 0)
 
 # system.time({
 #   cr =

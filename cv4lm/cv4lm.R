@@ -20,6 +20,7 @@ debugit(nwin)
 # TODO: this is superflous
 # we should just train each nwin once for each cutoff, but instead we train
 # a number of times (each time that nwin appears in a spec)
+# NOTE 2020-04-11: nah we just always train 1 lm, see `nlms` above.
 
 loginfo("Generate lmspecs...")
 lmspecs =
@@ -72,6 +73,8 @@ tt = unique(sales[["target_id"]])
 # need to generate trn/tst for each target id
 # there's _a lot_, 30K or so
 # cut down to 1/5th of the dataset to keep it manageable
+# NOTE: 2020-04-11 after a lot of time spent optimising the code, this limitation
+# has been lifted.
 v_targets = tt
 # v_targets = sample(tt, length(tt) / 5)
 
@@ -211,3 +214,14 @@ for (i in ci) {
 }
 
 loginfo("Done processing all chunks")
+
+tibble(
+  xs = runif(256, min = -1, max = 1) + 0.25*cos(1:256),
+  ys = 1:len(xs),
+  zs = abs(fft(xs))
+) %>%
+  print() %>%
+  pivot_longer(c(xs, zs)) %>%
+  ggplot(aes(x = ys, y = value)) +
+  geom_line() +
+  facet_wrap(~name, scales = "free", ncol = 1)

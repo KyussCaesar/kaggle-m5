@@ -1,11 +1,12 @@
 redo_load(
-  df = "sales_train_validation.csv.rds",
-  states = "states.rds",
-  cats = "cats.rds",
-  depts = "depts.rds",
-  stores = "stores.rds",
-  items = "items.rds",
-  targets = "targets.rds"
+  df = "sales_train_validation.csv.qs",
+  states = "states.qs",
+  cats = "cats.qs",
+  depts = "depts.qs",
+  stores = "stores.qs",
+  items = "items.qs",
+  targets = "targets.qs",
+  prices = "prices.qs"
 )
 
 loginfo("create sales lookup")
@@ -40,6 +41,9 @@ df_out =
   select(-variable, -value) %>%
   arrange() %>%
   as.data.table()
+
+df_out = merge(df_out, prices, by = c("d", "item_id", "store_id"), all.x = TRUE)
+df_out[, trnovr := volume * price]
 
 df_out
 setkey(df_out, "target_id")

@@ -1,6 +1,6 @@
 redo_load(
-  df = "sales_train_validation.csv.rds",
-  states = "states.rds"
+  df = "sales_train_validation.csv.qs",
+  states = "states.qs"
 )
 
 loginfo("create stores lookup")

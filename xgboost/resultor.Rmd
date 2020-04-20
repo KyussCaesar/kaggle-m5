@@ -1,0 +1,97 @@
+---
+title: "Result Analyser"
+author: "Antony"
+date: "2020-04-18"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Control Panel {.sidebar data-width=300}
+
+### Select Run:
+```{r}
+selectInput(
+  "which_run", label = "Which run to look at",
+  choices = list.dirs(path = "runs", recursive = FALSE)
+)
+
+this_env = environment()
+load_art = function(art) {
+  r = reactive({
+    qload(sprintf("%s/%s.qs", input$which_run, art))
+  })
+
+  assign(art, r, envir = this_env)
+}
+
+load_art("mdl")
+load_art("d_tst")
+```
+
+### Run Info:
+```{r, echo=FALSE}
+run_description = reactive({
+  rdfile = sprintf("%s/run-description.txt", input$which_run)
+  cat(read_file(rdfile))
+})
+
+renderPrint(run_description())
+```
+
+## Main Area {.tabset}
+
+### Evaluation Log
+```{r}
+eval_log_plot = reactive({
+  mdl()$evaluation_log %>%
+    as_tibble() %>%
+    pivot_longer(-iter) %>%
+    plotf(value ~ iter + name, geom = geom_line) %>%
+    ggplotly()
+})
+
+plotly::renderPlotly(eval_log_plot())
+```
+
+### Feature Importance
+```{r}
+feat_imp_plot = reactive({
+  xgb.importance(model = mdl()) %>%
+    plotf(Gain ~ Frequency + Feature) %>%
+    ggplotly()
+})
+
+plotly::renderPlotly(feat_imp_plot())
+```
+
+### Worst Forecasts
+```{r}
+worst_fcs_plot = reactive({
+  fcs_2_view =
+    d_tst() %>%
+    lazy_dt() %>%
+    mutate(err = volume - preds) %>%
+    group_by(i) %>%
+    summarise(rmse = rms(err * err)) %>%
+    arrange(desc(rmse)) %>%
+    head() %>%
+    left_join(d_tst()) %>%
+    select(i, target_d, volume, preds) %>%
+    mutate(i = sprintf("target_id=%06i", i)) %>%
+    as.data.table()
+
+  p =
+    ggplot(fcs_2_view) +
+    geom_line(aes(x = target_d, y = volume, colour = "volume")) +
+    geom_line(aes(x = target_d, y = preds, colour = "pred")) +
+    facet_wrap(~i)
+  
+  ggplotly(p)
+})
+
+plotly::renderPlotly(worst_fcs_plot())
+```

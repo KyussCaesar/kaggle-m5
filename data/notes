@@ -1,5 +1,0 @@
-Models to try:
-- FB Prophet (for large number of time series, and external vars)
-- xgboost / lgbm
-- AWS Forecast (can't remember, but there are two; the "AWS" one, and the one for
-    intermittent demand)

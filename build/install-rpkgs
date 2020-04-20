@@ -3,6 +3,11 @@
 # install dependencies
 install = function(pkgs) {
 
+  # Remove `stats` from pkg list
+  # It's only included so that `utils.R` will load `stats` before tidyverse
+  # (because .Rprofile is run before base packages are loaded)
+  pkgs = pkgs[pkgs != "stats"]
+
   # try to byte-compile all installed packages
   # note: not all packages work with --byte-compile
   # if something breaks, do it in a special case
