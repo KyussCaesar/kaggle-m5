@@ -77,7 +77,7 @@ for (agg_var in names(var2key)) {
 
       source(\"feature-generators.R\")
 
-      reload(\"sales\")
+      sales = qload(here(\"data/sales.qs\"))
 
       s_{agg_var} =
         sales[

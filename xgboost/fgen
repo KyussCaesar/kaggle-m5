@@ -3,7 +3,11 @@ set -euo pipefail
 cd $(dirname "$0")
 
 # generate the scripts to be run
+# NOTE: turn these off if the scripts/data already exist;
+# scripts skip work already done
+rm -rf src data
 Rscript fgen.R
+
 find ./src -name '*.Rc' \
   | parallel -j3 --eta \
     R --slave -e \''compiler::loadcmp("{}")'\'
