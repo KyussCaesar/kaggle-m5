@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd $(dirname "$0")
+
+# generate the scripts to be run
+Rscript fgen.R
+find ./src -name '*.Rc' \
+  | parallel -j3 --eta \
+    R --slave -e \''compiler::loadcmp("{}")'\'
+
