@@ -7,3 +7,8 @@ packrat/lib*/
 docs/_site.yml
 docs/*_cache
 *.qs
+
+xgboost/aggs
+xgboost/features
+xgboost/feature-makers
+

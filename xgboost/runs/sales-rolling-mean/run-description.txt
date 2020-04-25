@@ -1,0 +1,26 @@
+xgboost
+
+nrow d_trn:
+[1] 3414880
+
+params:
+  nthread = 16 
+  eta = 0.1 
+  gamma = 1 
+  max_depth = 6 
+  min_child_weight = 10 
+  max_delta_step = 0 
+  subsample = 0.7 
+  sampling_method = uniform 
+  colsample_bytree = 1 
+  colsample_bylevel = 1 
+  colsample_bynode = 1 
+  lambda = 0 
+  alpha = 0 
+  tree_method = hist 
+  num_parallel_tree = 2 
+
+rmse at best_iter:
+   iter trn_rmse tst_rmse
+1:   75 1.938493 2.163265
+

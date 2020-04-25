@@ -13,7 +13,7 @@ fspec =
     feature_name =
       system2(
         "/bin/bash",
-        input = "echo {tgt,itm,str,stt,cat,dpt}_{volume,trnovr}_{cumsum,yoy_{1,2},mom_{1,2,3,6,12},wow_{1,2,4},{trend,roll{mean,max,sum,countzeros}r}_{7,14,28,84,182}} | tr ' ' '\n'",
+        input = "echo {tgt,itm,str,stt,cat,dpt}_{prices,volume,trnovr}_{cumsum,yoy_{1,2},mom_{1,2,3,6,12},wow_{1,2,4},{trend,roll{mean,max,sum,countzeros}r}_{7,14,28,84,182}} | tr ' ' '\n'",
         stdout = TRUE
       )
   ) %>%
@@ -71,6 +71,29 @@ for (agg_var in names(var2key)) {
       # - source the functions each time; might get small speedup by only sourcing what
       #   is needed, or by re-defining in each generated script.
 
+      # TODO:
+      # - pre-generate the aggregated sales
+      # - define the feature-function inside the generated script; instead of
+      #   sourcing them all
+      # - only build features that are missing from the target
+      #   - if target exists:
+      #     - load it
+      #     - determine set of new features to build
+      #     - build those features
+      #     - save result
+      # - make the "agg_var" / "agg_val" generic as well
+      #   e.g
+      #   - volume_sum: generate features against the total volume
+      #   - price_mean: generate features against the mean price
+      #   - better wording: make the agg_func generic
+      # - generate "target-date" features:
+      #   - currently generate features that must be joined against test date (n)
+      #   - should write a new script that generates features to be joined against
+      #     target date (target_d)
+      #   - ideas:
+      #     - forecasts from ARIMA/hw/seasonal naiive
+      # - generate a script that collects the results
+
       fmt = "
       dir.create(dirname(\"{rscript_out}\"), recursive = TRUE, showWarnings = FALSE)
       if (file.exists(\"{rscript_out}\")) quit(save = \"no\", status = 0)
@@ -85,7 +108,8 @@ for (agg_var in names(var2key)) {
           {agg_key} <=  {agg_key_ids[c_end]},
           .(
             {agg_var}_volume = sum(volume, na.rm = TRUE),
-            {agg_var}_trnovr = sum(trnovr, na.rm = TRUE)
+            {agg_var}_trnovr = sum(trnovr, na.rm = TRUE),
+            {agg_var}_prices = mean(c(price, 0), na.rm = TRUE)
           ),
           keyby = .(d, {agg_key})
         ][

@@ -35,21 +35,28 @@ ggplotly <- plotly::ggplotly
 
 ncores = parallel::detectCores()
 
-qsave <- function(x, fp) qs::qsave(x, fp, preset = "high", nthreads = ncores)
-qload <- function(fp) qs::qread(fp, strict = TRUE, nthreads = ncores)
+qsave <- function(x, fp) {
+  #loginfo("save qs to %s", fp)
+  qs::qsave(x, fp, preset = "high", nthreads = ncores)
+}
+
+qload <- function(fp) {
+  #loginfo("load qs from %s", fp)
+  qs::qread(fp, strict = TRUE, nthreads = ncores)
+}
 
 len <- length
 
-rollapply  <- zoo::rollapply  
-rollmaxr   <- zoo::rollmaxr   
-rollmax    <- zoo::rollmax    
-rollsum    <- zoo::rollsum    
-rollapplyr <- zoo::rollapplyr 
-rollsumr   <- zoo::rollsumr   
-rollmean   <- zoo::rollmean   
+rollapply  <- zoo::rollapply
+rollmaxr   <- zoo::rollmaxr
+rollmax    <- zoo::rollmax
+rollsum    <- zoo::rollsum
+rollapplyr <- zoo::rollapplyr
+rollsumr   <- zoo::rollsumr
+rollmean   <- zoo::rollmean
 rollmedianr<- zoo::rollmedianr
-rollmeanr  <- zoo::rollmeanr  
-rollmedian <- zoo::rollmedian 
+rollmeanr  <- zoo::rollmeanr
+rollmedian <- zoo::rollmedian
 
 #' Print an expression and it's value
 #' Returns the value, invisibly
@@ -443,8 +450,8 @@ reload_utils = function() {
 #' Take `df` and transform it into the submission format
 make_submission = function(df) {
   redo_load(
-    items = here("data/items.rds"),
-    stores = here("data/stores.rds")
+    items = here("data/items.qs"),
+    stores = here("data/stores.qs")
   )
 
   stopifnot(all(
@@ -505,7 +512,7 @@ mkbar = function(msg, total) {
       total = total,
       clear = FALSE,
       format = sprintf("%s [:bar] :current/:total (:percent) :elapsed elapsed (:eta remain, :tick_rate/s)", msg),
-      width = 90,
+      width = 110,
       show_after = 0
     )
   pb
@@ -515,4 +522,36 @@ mkbar = function(msg, total) {
 unnamed = function(x) {
   names(x) <- NULL
   x
+}
+
+#' Apply mapf then reduce using redf.
+#' Different to xs %>% map(f) %>% reduce(g) is that we apply the map
+#' one-at-a-time, i.e "map -> reduce -> map -> reduce" rather than
+#' "map -> map -> reduce -> reduce"
+mapreduce = compiler::cmpfun(function(xs, mapf, redf, progmsg=NULL) {
+
+  pb = NULL
+  if (!is.null(progmsg)) pb = mkbar(paste(progmsg, agg_var), len(xs))
+  tick = ifelse(is.null(pb), function() {}, function() pb$tick())
+
+  stopifnot(len(xs) != 0)
+
+  state = mapf(xs[[1]])
+  tick()
+
+  if (len(xs) > 1) {
+    for (i in 2:len(xs)) {
+      state = redf(state, mapf(xs[[i]]))
+      gc(full = TRUE)
+      tick()
+    }
+  }
+
+  state
+})
+
+object_size_str = function(x) {
+  capture.output({
+    print(pryr::object_size(x))
+  })
 }
