@@ -17,24 +17,38 @@ msg "Generate aggregated series"
 msg "Generate features"
 for ftr in $(find features -mindepth 1 -maxdepth 1 -type d)
 do
-  rm -f "$ftr/build-start" "$ftr/build-end"
+  # if build was started but not completed, remove everything
+  # and redo
+  if [ -f "$ftr/build-start" ] && [ ! -f "$ftr/build-end" ]
+  then
+    find "$ftr" -mindepth 1 -type d -exec rm -rf {} \;
+  fi
 
-  echo "$(date -Is)" >"$ftr/build-start"
+  # if build start token is missing; build
+  if [ ! -f "$ftr/build-start" ]
+  then
+    # feature needs to be built
+    echo "$(date -Is)" >"$ftr/build-start"
 
-  msg "Generating $ftr"
-  ftrnm=$(basename $ftr)
-  ftrmkrs="$ftr/makers"
-  find "$ftr" -name '*-mk.R' >"$ftrmkrs"
-  msg "$(<$ftrmkrs wc -l | tr -d \ ) scripts to run"
+    msg "Generating $ftr"
+    ftrmkrs="$ftr/makers"
+    find "$ftr" -name '*-mk.R' >"$ftrmkrs"
+    msg "$(<$ftrmkrs wc -l | tr -d \ ) scripts to run"
 
-  # Being quite convervative with the parellelism here
-  # This is for two reasons:
-  # - so my machine doesn't lock up while building
-  # - so I have some spare compute/memory to play
-  #   with features as they are built.
-  time cat "$ftrmkrs" \
-    | parallel -j4 --eta \
-      Rscript
+    # Being quite convervative with the parellelism here
+    # This is for two reasons:
+    # - so my machine doesn't lock up while building
+    # - so I have some spare compute/memory to play
+    #   with features as they are built.
+    time cat "$ftrmkrs" \
+      | parallel -j4 --eta \
+        Rscript
+  fi
+
+  msg "Collect results for $ftr by day"
+  find "$ftr" -mindepth 1 -maxdepth 1 -type d \
+    | parallel -j14 --eta \
+      Rscript collect-feature-date.R
 
   msg "Done generating $ftr"
   echo "$(date -Is)" >"$ftr/build-end"

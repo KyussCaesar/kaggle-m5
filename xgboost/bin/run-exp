@@ -1,0 +1,52 @@
+#!/usr/bin/env Rscript
+loginfo("Experiment runner started.")
+argv = commandArgs(TRUE)
+expname = argv[1]
+expdir = glue("experiments/{expname}")
+
+# read configuration
+config_src = glue("{expdir}/config.R")
+config_env = new.env()
+loginfo("Read configuration from %s", config_src)
+source(config_src, local = config_env, chdir = TRUE)
+
+# setup for cv
+# initialise cvdb
+cvdb_qs = glue("{expdir}/cv/cvdb.qs")
+if (!file.exists(cvdb_qs)) {
+  loginfo("Initialise CVDB")
+  cvdb =
+    config_env[["initial_cvdb"]] %>%
+    mutate_at(c("rowid", "round_id", "run_id", "param_id"), as.integer)
+
+  qsave(cvdb, cvdb_qs)
+}
+
+cvdb = qload(cvdb_qs)
+
+# perform cv steps
+loginfo("Begin CV steps.")
+while (TRUE) {
+  status = system2("Rscript", c("src/cv-step.R", expname))
+  if (status != 0) {
+    logerror("CV step did not complete successfully.")
+    break()
+  }
+
+  loginfo("CV step done.")
+
+  # load cvdb
+  # check if any rows are not done
+  # if all done, break
+  loginfo("Load cvdb from %s", cvdb_qs)
+  cvdb = qload(cvdb_qs)
+
+  todo =
+    cvdb %>%
+    filter(!done) %>%
+    nrow()
+
+  loginfo("%i steps to go.", todo)
+
+  if (todo == 0) break()
+}

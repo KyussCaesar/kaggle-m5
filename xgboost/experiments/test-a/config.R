@@ -1,0 +1,37 @@
+# configuration for the experiment
+# should define some variables:
+#
+
+# CVDB table should look like this
+#
+#   round_id: int  id for the round
+#   run_id  : int  id for the run in that round
+#   param_id: int  id for the parameter set
+#   params  : list params to use for that round
+#   done    : bool has that step been run already?
+initial_cvdb =
+  tibble(
+    rowid = 1,
+    round_id = 1,
+    run_id = 1,
+    param_id = 1,
+    params = list(list(max_depth = 2, eta = 0.1, alpha = 0.2)),
+    done = FALSE
+  )
+
+# base_seed: int seed for generating run dates
+base_seed = 999
+
+# n_dates: int number of training dates for each run
+n_dates = 3
+
+# cb_step_end: \().() callback invoked at the end of each CV step.
+cb_step_end = function() {
+  if (this_run[["run_id"]] < 2) {
+    add_params_for_next_run(
+      list(
+        max_depth = 2, eta = 0.1, alpha = 0.2, subsample = 0.9
+      )
+    )
+  }
+}

@@ -161,7 +161,7 @@ create_dm = function(features, ds) {
   df
 }
 
-run_name = "new-dm-rf"
+run_name = "long-train"
 rundir = here("xgboost", "runs", run_name)
 if (!dir.exists(rundir)) {
   dir.create(rundir, recursive = TRUE)
@@ -183,7 +183,7 @@ L = 1:12
 # for now just testing...
 # choose a number of days at random from the past, bias towards later values
 set.seed(2357894)
-N = c(sample(1:1855, 4, prob = 1:1855), 1884, 1913, 1941)
+N = c(sample(1:1855, 28, prob = 1:1855), 1884, 1913, 1941)
 debugit(len(N))
 
 # when validation set is made available, use this one
@@ -193,14 +193,9 @@ dm_features =
   c(
     "dates",
     "days_since_launch",
-    "tgt_volume_sum_rollcountzerosr_84",
-    "tgt_volume_sum_wow_4",
-    "tgt_volume_sum_syoy_2",
-    "tgt_volume_sum_rollmaxr_7",
+    "tgt_volume_sum_snaive_1",
     "str_volume_sum_smom_2",
-    "itm_volume_sum_rollsumr_28",
-    "tgt_volume_sum_rollmeanr_84",
-    "str_trnovr_sum_rollrmsr_28"
+    "tgt_volume_sum_rollmeanr_84"
   )
 
 dm = create_dm(dm_features, N)
@@ -218,7 +213,7 @@ dm = create_dm(dm_features, N)
 #   could be a case where using the whole thing at once uses more memory than smaller chunks
 
 # loginfo("save the DM")
-# qsave(dm, "dm.qs")
+qsave(dm, "dm.qs")
 # dm = qload("dm.qs")
 
 loginfo("train/test split")
@@ -283,12 +278,12 @@ loginfo("Begin the training")
 params = list(
   #nthread = parallel::detectCores(),
   nthread = 6,
-  eta = 0.1,
+  eta = 0.05,
   gamma = 0.025,
-  max_depth = 24,
-  min_child_weight = 4,
+  max_depth = 3,
+  min_child_weight = 0.1,
   max_delta_step = 0,
-  subsample = 0.3,
+  subsample = 1,
   sampling_method = "uniform",
   colsample_bytree = 1,
   colsample_bylevel = 1,
@@ -296,7 +291,7 @@ params = list(
   lambda = 0,
   alpha = 0,
   tree_method = "hist",
-  num_parallel_tree = 4
+  num_parallel_tree = 1
 )
 
 mdl =
