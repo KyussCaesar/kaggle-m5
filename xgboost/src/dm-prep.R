@@ -50,20 +50,23 @@ create_dm = function(features, ds) {
       stop(feature_name, " has not finished building")
     }
 
-    load_from = glue("{load_dir}/{d}")
-    load_files = list.files(load_from, full.names = TRUE)
+    load_from = glue("{load_dir}/{d}-merged")
 
-    if (len(load_files) == 0) {
-      # feature does not exist for that day
-      # assume we are building features for the validation/evaluation set
-      # so just return empty df
-      # using d = 1 as a template
-      warning(feature_name, " has not been built for d = ", d, ": will use empty frame instead")
-      df = load_d(feature_name, 1)[1,]
-      df[,] <- NA
+    if (!file.exists(load_from)) {
+      if (d != 1) {
+        # feature does not exist for that day
+        # assume we are building features for the validation/evaluation set
+        # so just return empty df
+        # using d = 1 as a template
+        warning(feature_name, " has not been built for d = ", d, ": will use empty frame instead")
+        df = load_d(feature_name, 1)[1,]
+        df[,] <- NA
+      } else {
+        stop(feature_name, " has not been built for d = ", d, ": cannot proceed")
+      }
 
     } else {
-      df = mapreduce(load_files, qload, rbind)
+      df = qload(load_from)
 
     }
 
@@ -86,7 +89,7 @@ create_dm = function(features, ds) {
 
       df
     },
-      rbind
+      rbind#, progmsg = "load dm skeleton"
     )
 
   features = c("_skeleton", features)
@@ -106,6 +109,7 @@ create_dm = function(features, ds) {
   }
 
   load_feature = function(feature_name, d) {
+    debugit(feature_name)
     if (feature_name == "_skeleton") {
       df = dm_skeleton[target_d %in% c(d + 1:28)]
       df$d = d

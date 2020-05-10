@@ -15,7 +15,9 @@ suppressPackageStartupMessages({
       "qs",
       "pryr",
       "flexdashboard",
-      "zoo"
+      "zoo",
+      "igraph",
+      "Ckmeans.1d.dp"
     )
 
     if (p %in% dontload) {
@@ -78,7 +80,7 @@ count_true  = function(x) length(which(x))
 clamp = compiler::cmpfun(function(x, mn, mx) {
 
   if (!is.null(mn)) x[ x < mn ] <- mn
-  if (!is.null(mx)) x[ x < mx ] <- mx
+  if (!is.null(mx)) x[ x > mx ] <- mx
 
   x
 })
@@ -531,7 +533,7 @@ unnamed = function(x) {
 mapreduce = compiler::cmpfun(function(xs, mapf, redf, progmsg=NULL) {
 
   pb = NULL
-  if (!is.null(progmsg)) pb = mkbar(paste(progmsg, agg_var), len(xs))
+  if (!is.null(progmsg)) pb = mkbar(progmsg, len(xs))
   tick = ifelse(is.null(pb), function() {}, function() pb$tick())
 
   stopifnot(len(xs) != 0)

@@ -110,7 +110,9 @@ mdl =
       tst = tst
     ),
     objective = "reg:squarederror",
-    eval_metric = "rmse"
+    eval_metric = "rmse",
+    base_score = 0,
+    early_stopping_rounds = 20
   )
 
 loginfo("Training complete! Best iteration was:")
@@ -166,6 +168,17 @@ round_is_complete = function() {
     filter(round_id == this_run[["round_id"]]) %>%
     pull(done) %>%
     all()
+}
+
+do_next = function(
+  round_id = NULL,
+  run_id = NULL,
+  params = NULL,
+  param_id = NULL,
+  features = NULL,
+  features_id = NULL,
+  n_date = NULL
+){
 }
 
 add_params_for_next_run = function(p) {

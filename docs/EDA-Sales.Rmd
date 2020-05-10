@@ -5,7 +5,13 @@ date: "2020-03-29"
 ---
 
 ```{r setup, include=FALSE}
-rmdsetup()
+scale = 2.5
+knitr::opts_chunk$set(
+  echo = TRUE, cache = FALSE,
+  fig.align = "centre",
+  fig.width = 4*scale,
+  fig.height = 3*scale
+)
 ```
 
 # Load data

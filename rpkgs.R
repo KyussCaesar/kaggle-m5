@@ -2,6 +2,8 @@ rpkgs = c(
   "qs",
   "plotly",
   "stats", # need to load stats before tidyverse so it doesn't shadow dplyr
+  "igraph",
+  "Ckmeans.1d.dp",
   "xgboost",
   "neuralnet",
   "recipes",

@@ -37,16 +37,27 @@ redo_load(
 )
 ```
 
-# Prices by department and category
+# Prices by department and category, log v.s. not-logged
 
-No plotly for this; it's quite slow.
+This is really slow, so I sub-sample the dataset.
 
 ```{r prices_by_dept}
+set.seed(89357)
 prices %>%
+  lazy_dt() %>%
+  sample_frac(0.1) %>%
+  mutate(log_price = log(price)) %>%
+  as.data.table() %>%
+  pivot_longer(
+    c("price", "log_price"),
+    names_to = "price_type",
+    values_to = "price"
+  ) %>%
   merge(
     items[,c("item_id", "dept_id", "cat_id")],
     by = "item_id",
     all.x = TRUE
   ) %>%
-  plotf(price ~ dept_id + cat_id, geom=geom_boxplot)
+  plotf(price ~ dept_id + cat_id, geom=geom_boxplot) +
+  facet_wrap(~price_type, scales = "free")
 ```

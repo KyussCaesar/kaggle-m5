@@ -47,7 +47,7 @@ do
 
   msg "Collect results for $ftr by day"
   find "$ftr" -mindepth 1 -maxdepth 1 -type d \
-    | parallel -j14 --eta \
+    | parallel -j6 --eta \
       Rscript collect-feature-date.R
 
   msg "Done generating $ftr"
