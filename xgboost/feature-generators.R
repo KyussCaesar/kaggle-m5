@@ -1,3 +1,6 @@
+# feature generators;
+# e.g for a yoy feature, pass the series to mk_yoy
+
 mk_cumsum = function(xs, a) cumsum(xs)
 
 mk_lagon = function(xs, l) {
