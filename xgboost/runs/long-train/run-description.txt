@@ -1,0 +1,33 @@
+xgboost
+
+rmse at best_iter:
+   iter trn_rmse tst_rmse
+1:   58 2.478872 2.241702
+
+features:
+  dates 
+  days_since_launch 
+  tgt_volume_sum_snaive_1 
+  str_volume_sum_smom_2 
+  tgt_volume_sum_rollmeanr_84 
+
+params:
+  nthread = 6 
+  eta = 0.05 
+  gamma = 0.025 
+  max_depth = 3 
+  min_child_weight = 0.1 
+  max_delta_step = 0 
+  subsample = 1 
+  sampling_method = uniform 
+  colsample_bytree = 1 
+  colsample_bylevel = 1 
+  colsample_bynode = 1 
+  lambda = 0 
+  alpha = 0 
+  tree_method = hist 
+  num_parallel_tree = 1 
+
+nrow d_trn:
+[1] 23904160
+
