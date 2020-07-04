@@ -1,8 +1,15 @@
-//! Provides some pre-built Hypothesis store implementations.
-
 use crate::prelude::*;
-use crate::Hypothesis;
+use crate::hypothesis::Hypothesis;
 
+/// Each row in the CVDB is a Hypothesis being tested.
+/// This trait represents types that can access the backing store for Hypotheses.
+pub trait HypothesisStore
+{
+  pub fn get(&self, hyp_id: id) -> Hypothesis;
+  pub fn put(&mut self, hyp: Hypothesis) -> id;
+}
+
+/// An in-memory `HypothesisStore`.
 struct InMemory
 {
   table: Vec<Hypothesis>
