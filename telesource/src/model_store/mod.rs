@@ -48,7 +48,7 @@ impl ModelStore for InMemory
 
     let model = Booster::train(&params).unwrap();
 
-    let score = model.evaluate(&trn).unwrap()["rmse"] as float;
+    let score = model.evaluate(&tst).unwrap()["rmse"] as float;
 
     self.table.push(model);
     let model_id = self.table.len();

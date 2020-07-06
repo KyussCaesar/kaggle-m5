@@ -60,7 +60,8 @@ impl DMatrixStore for Local
         .expect("failed to run process")
         .stdout;
 
-    return (String::from_utf8(trn).unwrap().into(), String::from_utf8(tst).unwrap().into());
+    //return (String::from_utf8(trn).unwrap().into(), String::from_utf8(tst).unwrap().into());
+    return ("agaricus.txt.train".into(), "agaricus.txt.test".into())
   }
 }
 

@@ -55,62 +55,31 @@ fn mk_dates(n_dates: usize, base_seed: id, run_id: id) -> (Vec<int>, int)
   (dates, tst_date)
 }
 
-pub struct Experiment
-{
-  cvdb: Box<dyn CVDB>,
-  hyp_s: Box<dyn HypothesisStore>,
-  dmatrix_s: Box<dyn DMatrixStore>,
-  model_s: Box<dyn ModelStore>,
+pub fn run_experiment<F: Fn(&mut dyn CVDB, &mut dyn HypothesisStore, id, id, &Hypothesis)>
+(
+  cvdb: &mut dyn CVDB,
+  hyp_s: &mut dyn HypothesisStore,
+  dmatrix_s: &mut DMatrixStore,
+  model_s: &mut ModelStore,
   base_seed: id,
-  end_of_run: Box<dyn Fn(&mut dyn CVDB, id, id, &Hypothesis)>
-}
-
-impl Experiment
+  end_of_run: F
+)
 {
-  pub fn new
-  <
-    C: CVDB + 'static,
-    HS: HypothesisStore + 'static,
-    DS: DMatrixStore + 'static,
-    MS: ModelStore + 'static,
-    F: Fn(&mut dyn CVDB, id, id, &Hypothesis) + 'static
-  >
-  (
-    cvdb: C,
-    hyp_s: HS,
-    dmatrix_s: DS,
-    model_s: MS,
-    base_seed: id,
-    end_of_run: F
-  ) -> Self
+  while let Some((test_date_id, hyp_id)) = cvdb.get_next_untested_row()
   {
-    Self
-    {
-      cvdb: Box::new(cvdb),
-      hyp_s: Box::new(hyp_s),
-      dmatrix_s: Box::new(dmatrix_s),
-      model_s: Box::new(model_s),
-      base_seed: base_seed,
-      end_of_run: Box::new(end_of_run),
-    }
-  }
+    let hyp = hyp_s.get(hyp_id);
 
-  pub fn run(&mut self)
-  {
-    while let Some((test_date_id, hyp_id)) = self.cvdb.get_next_untested_row()
-    {
-      let hyp = self.hyp_s.get(hyp_id);
+    let (trn_dates, tst_date) = mk_dates(hyp.get_n_training_dates(), base_seed, test_date_id);
 
-      let (trn_dates, tst_date) = mk_dates(hyp.get_n_training_dates(), self.base_seed, test_date_id);
+    let (trn, tst) = dmatrix_s.get(hyp.get_features(), &trn_dates, tst_date);
 
-      let (trn, tst) = self.dmatrix_s.get(hyp.get_features(), &trn_dates, tst_date);
+    let (model_id, score) = model_s.train(hyp.clone(), trn, tst);
 
-      let (model_id, score) = self.model_s.train(hyp.clone(), trn, tst);
+    cvdb.record_score(test_date_id, hyp_id, score, model_id);
 
-      self.cvdb.record_score(test_date_id, hyp_id, score, model_id);
+    let mut current_run_id = test_date_id;
 
-      (self.end_of_run)(&mut *self.cvdb, test_date_id, hyp_id, &hyp);
-    }
+    end_of_run(cvdb, hyp_s, test_date_id, hyp_id, &hyp);
   }
 }
 

@@ -35,8 +35,9 @@ impl HypothesisStore for InMemory
 
   fn put(&mut self, hyp: Hypothesis) -> id
   {
+    let id = self.table.len();
     self.table.push(hyp);
-    return self.table.len();
+    return id;
   }
 }
 

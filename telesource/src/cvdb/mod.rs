@@ -39,6 +39,28 @@ impl InMemory
       table: HashMap::new(),
     }
   }
+
+  pub fn dump_table(&self)
+  {
+    println!("hyp_id,test_date_id,score,model_id");
+    for hyp_id in self.table.keys()
+    {
+      for test_date_id in self.table[hyp_id].keys()
+      {
+        let mut score = float::NAN;
+        let mut id = 0;
+
+        if let Some((s, i)) = self.table[hyp_id][test_date_id]
+        {
+          score = s;
+          id = i;
+        }
+
+        println!("{},{},{},{}", hyp_id, test_date_id, score, id);
+      }
+    }
+
+  }
 }
 
 impl CVDB for InMemory
