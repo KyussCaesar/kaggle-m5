@@ -5,12 +5,12 @@ use crate::hypothesis::Hypothesis;
 /// This trait represents types that can access the backing store for Hypotheses.
 pub trait HypothesisStore
 {
-  pub fn get(&self, hyp_id: id) -> Hypothesis;
-  pub fn put(&mut self, hyp: Hypothesis) -> id;
+  fn get(&self, hyp_id: id) -> Hypothesis;
+  fn put(&mut self, hyp: Hypothesis) -> id;
 }
 
 /// An in-memory `HypothesisStore`.
-struct InMemory
+pub struct InMemory
 {
   table: Vec<Hypothesis>
 }
@@ -28,12 +28,12 @@ impl InMemory
 
 impl HypothesisStore for InMemory
 {
-  pub fn get(&self, hyp_id: id) -> &Hypothesis
+  fn get(&self, hyp_id: id) -> Hypothesis
   {
-    self.table[i]
+    self.table[hyp_id].clone()
   }
 
-  pub fn put(&mut self, hyp: Hypothesis) -> id
+  fn put(&mut self, hyp: Hypothesis) -> id
   {
     self.table.push(hyp);
     return self.table.len();

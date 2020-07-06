@@ -1,11 +1,13 @@
 use crate::prelude::*;
 
+use serde::{Serialize, Deserialize};
+
 /*[[[cog
 import cog
 cog.out("\n")
 
 FIELDS = [
-  ('n_training_dates'          , 'int', '1'),
+  ('n_training_dates'          , 'usize', '1'),
   ('features'                  , 'Vec<String>', 'Vec::new()'),
   ('split'                     , 'Vec<(String, int)>', 'Vec::new()'),
   ('xgb_nrounds'               , 'int', '1'),
@@ -31,7 +33,7 @@ FIELDS = [
 ]
 
 # generate Hypothesis struct definition
-cog.outl("#[derive(Clone, Debug)]")
+cog.outl("#[derive(Clone, Debug, Serialize, Deserialize)]")
 cog.outl("pub struct Hypothesis")
 cog.outl("{")
 for (k, v, _) in FIELDS:
@@ -77,17 +79,16 @@ cog.outl("    {")
 for (k, _, v) in FIELDS:
   cog.outl("      %s: %s," % (k, v))
 cog.outl("    };")
-cog.outl("    this.validate();")
 cog.outl("    return this;")
 cog.outl("  }")
 cog.outl("}\n")
 
 ]]]*/
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Hypothesis
 {
-  n_training_dates: int,
+  n_training_dates: usize,
   features: Vec<String>,
   split: Vec<(String, int)>,
   xgb_nrounds: int,
@@ -115,7 +116,7 @@ pub struct Hypothesis
 #[derive(Clone, Debug)]
 pub struct HypothesisPub
 {
-  pub n_training_dates: int,
+  pub n_training_dates: usize,
   pub features: Vec<String>,
   pub split: Vec<(String, int)>,
   pub xgb_nrounds: int,
@@ -231,7 +232,6 @@ impl Default for Hypothesis
       xgb_tree_method: "auto".to_string(),
       xgb_num_parallel_tree: 1,
     };
-    this.validate();
     return this;
   }
 }
@@ -255,10 +255,10 @@ impl Hypothesis
   ///   h.gamma = 0.1;
   /// })
   /// ```
-  pub fn derive_new<F: FnMut(&mut HypothesisPub)>(&self, f: F) -> Self
+  pub fn derive_new<F: FnMut(&mut HypothesisPub)>(&self, mut f: F) -> Self
   {
     // clone and make editable
-    let cln = into_pub(self.clone());
+    let mut cln = into_pub(self.clone());
 
     // pass the editable version to the function to edit.
     f(&mut cln);
@@ -266,5 +266,17 @@ impl Hypothesis
     // convert back into Hypothesis and return.
     from_pub(cln)
   }
+
+  pub fn get_n_training_dates(&self) -> usize
+  {
+    self.n_training_dates
+  }
+
+  pub fn get_features(&self) -> &Vec<String>
+  {
+    &self.features
+  }
 }
+
+// TODO: generate impl of From<Hypothesis> for LearningTaskParams
 

@@ -1,17 +1,28 @@
+use std::process::Command;
+
+use crate::prelude::*;
 use crate::dmatrixptr::DMatrixPtr;
 
 pub trait DMatrixStore
 {
   /// Returns the train and test sets for a design matrix constructed with the
   /// specified features, training dates, and test date.
-  pub fn get(&self, features: &[str], trn_dates: &[int], tst_date: int) -> (DMatrixPtr, DMatrixPtr);
+  fn get(&self, features: &Vec<String>, trn_dates: &[int], tst_date: int) -> (DMatrixPtr, DMatrixPtr);
 }
 
-struct Local;
+pub struct Local;
+
+impl Local
+{
+  pub fn new() -> Self
+  {
+    Self
+  }
+}
 
 impl DMatrixStore for Local
 {
-  pub fn get(&self, features: &[str], trn_dates: &[int], tst_date: int) -> (DMatrixPtr, DMatrixPtr)
+  fn get(&self, features: &Vec<String>, trn_dates: &[int], tst_date: int) -> (DMatrixPtr, DMatrixPtr)
   {
     for f in features
     {
@@ -22,16 +33,21 @@ impl DMatrixStore for Local
         .expect("failed to run process");
     }
 
-    let trn =
-      Command::new("Rscript")
+    let trn = {
+      let mut trn = Command::new("Rscript");
+      trn
         .arg("create-dm.R")
         .arg("--features")
         .args(features)
-        .arg("--dates")
-        .args(trn_dates)
-        .output()
-        .expect("failed to run process")
-        .stdout;
+        .arg("--dates");
+
+      for d in trn_dates
+      {
+        trn.arg(d.to_string());
+      }
+
+      trn.output().expect("failed to run process").stdout
+    };
 
     let tst =
       Command::new("Rscript")
@@ -39,12 +55,12 @@ impl DMatrixStore for Local
         .arg("--features")
         .args(features)
         .arg("--dates")
-        .arg(tst_date)
+        .arg(tst_date.to_string())
         .output()
         .expect("failed to run process")
         .stdout;
 
-    return (trn, tst);
+    return (String::from_utf8(trn).unwrap().into(), String::from_utf8(tst).unwrap().into());
   }
 }
 

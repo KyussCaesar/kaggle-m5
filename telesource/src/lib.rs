@@ -1,132 +1,116 @@
 //! Library for distributed data-science build.
 
+use rand::distributions::uniform::Uniform;
+use rand::Rng;
+use rand_chacha::ChaCha20Rng;
+use rand_chacha::rand_core::RngCore;
+use rand_chacha::rand_core::SeedableRng;
+
+#[allow(non_camel_case_types)]
 pub mod prelude
 {
   // basic type aliases; simplify for prototype
-  type float = f64;
-  type int = u16;
-  type short = u8;
-  type id = usize;
+  pub type float = f64;
+  pub type int = u16;
+  pub type short = u8;
+  pub type id = usize;
 }
 
-use crate::prelude::*;
+pub mod cvdb;
+pub mod dmatrix_store;
+pub mod dmatrixptr;
+pub mod hypothesis;
+pub mod hypothesis_store;
+pub mod model_store;
+
+use crate::cvdb::CVDB;
+use crate::dmatrix_store::DMatrixStore;
 use crate::hypothesis::Hypothesis;
+use crate::hypothesis_store::HypothesisStore;
+use crate::model_store::ModelStore;
+use crate::prelude::*;
 
-// need to think more about how these systems would pass data back and forth
-// e.g? mos.train(&params, dms.get(&features, &dates))
-// e.g for DM build; it would need to load each of the features
-// but to support distributed build, you wouldn't pass around the actual data,
-// just some kind of spec.
-// e.g how could this work for different schedulers underneath?
-// could have one that pushes jobs onto Batch queue
-// other way, sends to Celery queue
-// generally; want to be able to spawn copies of myself with a different entrypoint.
-// other generally; don't want this part to have to know that "oh this is all in-memory"
-// or "oh this is running somewhere else"
-// could do something with redo? if you have proper structure around stuff
-//
-// might help to nail out what this _does_ care about/what this _does_ do for you
-// - testing arbitrary hypotheses on a set of data in a CV-like fashion
-// - generates artifacts in a structured way to feed into analysis tools
-// - hyperparameter search and feature selection using arbitrary methods
-//
-// performing ^ in a "execution-place" independent way; up to implementors to decide
-// where the code gets run
-// e.g for building features; might do it in-process, might do it in forked process,
-// might do it in AWS, doesn't matter
-// library will also expose some "pre-baked goods"; e.g "store CVDB in local SQLite"
-// already knows how to fork itself into ECS task on AWS, already knows how to use
-// redis for hypothesis store.
-
-fn mk_dates(n_dates: int, base_seed: id, round_id: id, run_id: id) -> (Vec<int>, int)
+fn mk_dates(n_dates: usize, base_seed: id, run_id: id) -> (Vec<int>, int)
 {
-  // translated from this R code
-  // old_seed = .Random.seed
-  // set.seed(base_seed + round_id)
-  // set.seed(floor(runif(1, min = 0, max = .Machine$integer.max - 1048576)) + run_id)
-  // dm_dates = sort(sample(1:1855, n_dates, prob = 1:1855))
-  // dm_dates[len(dm_dates) + 1] = dm_dates[len(dm_dates)] + 28
-  // .Random.seed = old_seed
-  // # tst_date = last_training_date + forecast horizon
-  // 
-  // trn_dates = dm_dates[-len(dm_dates)]
-  // tst_date  = dm_dates[ len(dm_dates)]
-
   assert!(n_dates >  0);
   assert!(n_dates <= 1855);
 
-  let possible_dates = 1..=1855;
+  let mut rng = {
+    let mut rng = ChaCha20Rng::seed_from_u64(base_seed as u64);
+    for _ in 0..run_id { rng.next_u64(); }
+    ChaCha20Rng::seed_from_u64(rng.next_u64())
+  };
 
-  // weighted list of dates
-  // bias toward later dates cause:
-  // - makes training sets more similar to the "real deal" (continuous history)
-  // - don't care so much if the model is rubbish at predicting old data c.f. newer
-  // note: may have to undo this cause for large n_dates it means
-  let mut items =
-    possible_dates
-    .iter()
-    .map(|x| Weighted { weight: x, item: x})
-    .collect();
+  let last_trn = rng.sample(Uniform::from(730..=1855));
 
-  let wc = WeightedChoice::new(&mut items);
+  let mut dates: Vec<int> = Vec::with_capacity(n_dates);
 
-  // TODO: this needs to be replaced with a seed derived from the params to this
-  // function
-  let mut rng = rand::thread_rng();
-
-  // rand crate doesn't implement sampling _without_ replacement >:(
-  // so we just push values into a hashset until it reaches the required size.
-  let dates: Vec<int> = {
-    let mut ds = HashSet::with_capacity(n_dates as usize);
-    while ds.len() != n_dates
-    {
-      ds.insert(wc.sample(&mut rng));
-    }
-    ds.into_iter().collect().sort_unstable();
+  for i in 0..n_dates
+  {
+    dates.push(last_trn - i as int);
   }
 
-  (dates, dates[n_dates - 1] + 28)
+  let tst_date = last_trn + 28;
+
+  (dates, tst_date)
 }
 
-pub fn run_experiment
-<
-  HS: HypothesisStore,
-  CVDBS: CVDBStore,
-  F: Feature,
-  DM: DesignMatrix,
-  FS: FeaturesStore<F=F>,
-  DMS: DesignMatrixStore<F=F, DM=DM>,
-  MOS: ModelObjectStore<DM=DM>,
->
-(
-  training_dates_base_seed: id,
-  hs: HS,
-  cs: CVDBS,
-  fs: FS,
-  ds: DMS,
-  ms: MOS,
-)
+pub struct Experiment
 {
-  // load the next un-tested hypothesis from the CVDB
-  while let Some((row_id, round_id, run_id, hyp_id)) = cs.get_next_untested_row()
+  cvdb: Box<dyn CVDB>,
+  hyp_s: Box<dyn HypothesisStore>,
+  dmatrix_s: Box<dyn DMatrixStore>,
+  model_s: Box<dyn ModelStore>,
+  base_seed: id,
+  end_of_run: Box<dyn Fn(&mut dyn CVDB, id, id, &Hypothesis)>
+}
+
+impl Experiment
+{
+  pub fn new
+  <
+    C: CVDB + 'static,
+    HS: HypothesisStore + 'static,
+    DS: DMatrixStore + 'static,
+    MS: ModelStore + 'static,
+    F: Fn(&mut dyn CVDB, id, id, &Hypothesis) + 'static
+  >
+  (
+    cvdb: C,
+    hyp_s: HS,
+    dmatrix_s: DS,
+    model_s: MS,
+    base_seed: id,
+    end_of_run: F
+  ) -> Self
   {
-    // generate selection of training dates
-    let (trn_dates, tst_date) = mk_dates(training_date_base_seed, round_id, run_id);
+    Self
+    {
+      cvdb: Box::new(cvdb),
+      hyp_s: Box::new(hyp_s),
+      dmatrix_s: Box::new(dmatrix_s),
+      model_s: Box::new(model_s),
+      base_seed: base_seed,
+      end_of_run: Box::new(end_of_run),
+    }
+  }
 
-    // Retrieve hypothesis details from the hypothesis store.
-    let hyp = hs.get(hyp_id);
+  pub fn run(&mut self)
+  {
+    while let Some((test_date_id, hyp_id)) = self.cvdb.get_next_untested_row()
+    {
+      let hyp = self.hyp_s.get(hyp_id);
 
-    // load trn/tst
-    let (trn, tst) = ds.get(&hyp.features, &trn_dates, &tst_date);
+      let (trn_dates, tst_date) = mk_dates(hyp.get_n_training_dates(), self.base_seed, test_date_id);
 
-    // train the model
-    let (model_id, score) = ms.train(&hyp.params, &trn, &tst);
+      let (trn, tst) = self.dmatrix_s.get(hyp.get_features(), &trn_dates, tst_date);
 
-    // record score in CVDB
-    cs.record_score(row_id, model_id, score);
+      let (model_id, score) = self.model_s.train(hyp.clone(), trn, tst);
 
-    // invoke end-of-run callback
-    // end_of_run();
+      self.cvdb.record_score(test_date_id, hyp_id, score, model_id);
+
+      (self.end_of_run)(&mut *self.cvdb, test_date_id, hyp_id, &hyp);
+    }
   }
 }
 
