@@ -1,0 +1,7 @@
+- actually respect the hyperparameter values specified in the Hypothesis
+- actually implement feature-builder
+- implement some remote builder/trainers
+- also the whole thing needs to be made asynchronous to be really useful
+  e.g for CV; helpful to distribute across many machines.
+  e.g for large DM builds, kick it to another machine while this machine keeps working on other stuff
+
