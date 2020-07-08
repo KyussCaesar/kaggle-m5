@@ -1,0 +1,3 @@
+[submodule "telesource/rust-xgboost"]
+	path = telesource/rust-xgboost
+	url = git@github.com:KyussCaesar/rust-xgboost.git
