@@ -55,12 +55,13 @@ fn mk_dates(n_dates: usize, base_seed: id, run_id: id) -> (Vec<int>, int)
   (dates, tst_date)
 }
 
+/// Run an experiment.
 pub fn run_experiment<F: Fn(&mut dyn CVDB, &mut dyn HypothesisStore, id, id, &Hypothesis)>
 (
   cvdb: &mut dyn CVDB,
   hyp_s: &mut dyn HypothesisStore,
-  dmatrix_s: &mut DMatrixStore,
-  model_s: &mut ModelStore,
+  dmatrix_s: &mut dyn DMatrixStore,
+  model_s: &mut dyn ModelStore,
   base_seed: id,
   end_of_run: F
 )
@@ -76,8 +77,6 @@ pub fn run_experiment<F: Fn(&mut dyn CVDB, &mut dyn HypothesisStore, id, id, &Hy
     let (model_id, score) = model_s.train(hyp.clone(), trn, tst);
 
     cvdb.record_score(test_date_id, hyp_id, score, model_id);
-
-    let mut current_run_id = test_date_id;
 
     end_of_run(cvdb, hyp_s, test_date_id, hyp_id, &hyp);
   }

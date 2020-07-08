@@ -83,6 +83,14 @@ cog.outl("    return this;")
 cog.outl("  }")
 cog.outl("}\n")
 
+# impl some getters for XGBoost parameters
+cog.outl("impl Hypothesis")
+cog.outl("{")
+for (k, v, _) in FIELDS:
+  if k.startswith("xgb_"):
+    cog.outl("  pub fn get_%s(&self) -> %s { self.%s.clone() }" % (k[len("xgb_"):], v, k))
+cog.outl("}\n")
+
 ]]]*/
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -236,6 +244,30 @@ impl Default for Hypothesis
   }
 }
 
+impl Hypothesis
+{
+  pub fn get_nrounds(&self) -> int { self.xgb_nrounds.clone() }
+  pub fn get_objective(&self) -> Option<String> { self.xgb_objective.clone() }
+  pub fn get_eval_metric(&self) -> Option<String> { self.xgb_eval_metric.clone() }
+  pub fn get_base_score(&self) -> float { self.xgb_base_score.clone() }
+  pub fn get_early_stopping_rounds(&self) -> Option<int> { self.xgb_early_stopping_rounds.clone() }
+  pub fn get_nthread(&self) -> short { self.xgb_nthread.clone() }
+  pub fn get_eta(&self) -> float { self.xgb_eta.clone() }
+  pub fn get_gamma(&self) -> float { self.xgb_gamma.clone() }
+  pub fn get_max_depth(&self) -> short { self.xgb_max_depth.clone() }
+  pub fn get_min_child_weight(&self) -> float { self.xgb_min_child_weight.clone() }
+  pub fn get_max_delta_step(&self) -> float { self.xgb_max_delta_step.clone() }
+  pub fn get_subsample(&self) -> float { self.xgb_subsample.clone() }
+  pub fn get_sampling_method(&self) -> String { self.xgb_sampling_method.clone() }
+  pub fn get_colsample_bytree(&self) -> float { self.xgb_colsample_bytree.clone() }
+  pub fn get_colsample_bylevel(&self) -> float { self.xgb_colsample_bylevel.clone() }
+  pub fn get_colsample_bynode(&self) -> float { self.xgb_colsample_bynode.clone() }
+  pub fn get_lambda(&self) -> float { self.xgb_lambda.clone() }
+  pub fn get_alpha(&self) -> float { self.xgb_alpha.clone() }
+  pub fn get_tree_method(&self) -> String { self.xgb_tree_method.clone() }
+  pub fn get_num_parallel_tree(&self) -> short { self.xgb_num_parallel_tree.clone() }
+}
+
 //[[[end]]]
 
 impl Hypothesis 
@@ -277,6 +309,4 @@ impl Hypothesis
     &self.features
   }
 }
-
-// TODO: generate impl of From<Hypothesis> for LearningTaskParams
 

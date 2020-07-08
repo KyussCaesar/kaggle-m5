@@ -1,3 +1,5 @@
+use env_logger;
+
 use telesource::prelude::*;
 
 use telesource::{
@@ -19,10 +21,11 @@ fn end_of_run(
   hyp: &Hypothesis
 )
 {
-  if run_id < 10
+  if run_id < 5
   {
     let new_h = hyp.derive_new(|h| {
       h.xgb_nrounds += 1;
+      h.xgb_max_depth += 1;
     });
 
     cvdb.propose_hypothesis_test(run_id + 1, hs.put(new_h));
@@ -31,8 +34,12 @@ fn end_of_run(
 
 fn main()
 {
+  env_logger::init();
+
   let mut hs = hypothesis_store::InMemory::new();
-  let hyp = Hypothesis::new();
+  let hyp = Hypothesis::new().derive_new(|h| {
+    h.xgb_max_depth = 5;
+  });
 
   let hyp_id = hs.put(hyp);
 
