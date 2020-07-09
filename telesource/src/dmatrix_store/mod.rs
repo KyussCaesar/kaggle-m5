@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::path::{Path, PathBuf};
 
 use crate::prelude::*;
 use crate::dmatrixptr::DMatrixPtr;
@@ -10,58 +10,38 @@ pub trait DMatrixStore
   fn get(&self, features: &Vec<String>, trn_dates: &[int], tst_date: int) -> (DMatrixPtr, DMatrixPtr);
 }
 
-pub struct Local;
-
-impl Local
+/// Dummy DMatrix store; just returns `agaricus.txt` train and test sets.
+pub struct Agaricus
 {
-  pub fn new() -> Self
+  trn: PathBuf,
+  tst: PathBuf,
+}
+
+impl Agaricus
+{
+  pub fn new<P1: AsRef<Path>, P2: AsRef<Path>>(trn_p: P1, tst_p: P2) -> Self
   {
     Self
+    {
+      trn: trn_p.as_ref().to_owned(),
+      tst: tst_p.as_ref().to_owned(),
+    }
   }
 }
 
-impl DMatrixStore for Local
+impl Default for Agaricus
 {
-  fn get(&self, features: &Vec<String>, trn_dates: &[int], tst_date: int) -> (DMatrixPtr, DMatrixPtr)
+  fn default() -> Self
   {
-    for f in features
-    {
-      Command::new("Rscript")
-        .arg("generate-feature.R")
-        .arg(f)
-        .status()
-        .expect("failed to run process");
-    }
+    Self::new("agaricus.txt.train", "agaricus.txt.test")
+  }
+}
 
-    let trn = {
-      let mut trn = Command::new("Rscript");
-      trn
-        .arg("create-dm.R")
-        .arg("--features")
-        .args(features)
-        .arg("--dates");
-
-      for d in trn_dates
-      {
-        trn.arg(d.to_string());
-      }
-
-      trn.output().expect("failed to run process").stdout
-    };
-
-    let tst =
-      Command::new("Rscript")
-        .arg("create-dm.R")
-        .arg("--features")
-        .args(features)
-        .arg("--dates")
-        .arg(tst_date.to_string())
-        .output()
-        .expect("failed to run process")
-        .stdout;
-
-    //return (String::from_utf8(trn).unwrap().into(), String::from_utf8(tst).unwrap().into());
-    return ("agaricus.txt.train".into(), "agaricus.txt.test".into())
+impl DMatrixStore for Agaricus
+{
+  fn get(&self, _: &Vec<String>, _: &[int], _: int) -> (DMatrixPtr, DMatrixPtr)
+  {
+    return (self.trn.clone().into(), self.tst.clone().into())
   }
 }
 

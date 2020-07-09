@@ -22,6 +22,9 @@ pub trait CVDB
 
   /// Returns the next `(run_id, hyp_id)` to be run.
   fn get_next_untested_row(&self) -> Option<(id, id)>;
+
+  // TODO: add some methods to inspect the status of the DB, to help end-of-run
+  // callbacks to make decisions about how to derive new hypotheses to test.
 }
 
 /// In-memory CVDB.
