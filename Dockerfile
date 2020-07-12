@@ -160,6 +160,12 @@ RUN mkdir build
 COPY build/install-redo build/install-redo
 RUN build/install-redo
 
+ENV \
+  RUSTUP_HOME=/usr/local/rustup \
+  CARGO_HOME=/usr/local/cargo \
+  PATH=/usr/local/cargo/bin:$PATH \
+  RUST_VERSION=1.44.1
+
 COPY build/install-system build/install-system
 RUN build/install-system
 
@@ -168,4 +174,5 @@ ENV R_INSTALL_STAGED=false R_ENABLE_JIT=3
 COPY rpkgs.R rpkgs.R
 COPY build/install-rpkgs build/install-rpkgs
 RUN INSTALLING_PACKAGES=true build/install-rpkgs
+ENV PATH=$PATH:/usr/local/cargo/bin
 
