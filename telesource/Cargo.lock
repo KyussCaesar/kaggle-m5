@@ -481,6 +481,7 @@ name = "telesource"
 version = "0.1.0"
 dependencies = [
  "env_logger 0.7.1",
+ "log",
  "rand",
  "rand_chacha",
  "serde",

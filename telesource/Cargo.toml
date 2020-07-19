@@ -13,4 +13,5 @@ xgboost = { path = "rust-xgboost" }
 rand = "0.7"
 rand_chacha = "0.2"
 env_logger = "0.7"
+log = "0.4"
 

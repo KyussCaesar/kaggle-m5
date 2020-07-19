@@ -1,5 +1,3 @@
-use std::path::{Path, PathBuf};
-
 use crate::prelude::*;
 use crate::dmatrixptr::DMatrixPtr;
 
@@ -10,38 +8,27 @@ pub trait DMatrixStore
   fn get(&self, features: &Vec<String>, trn_dates: &[int], tst_date: int) -> (DMatrixPtr, DMatrixPtr);
 }
 
-/// Dummy DMatrix store; just returns `agaricus.txt` train and test sets.
-pub struct Agaricus
+/// Blanket impl for closures with the same call signature as the method.
+///
+/// This allows you to use a plain function as the "DMatrixStore", for cases
+/// when:
+/// * you don't have any state to track in-between builds, or
+/// * your function invokes something else that keeps track of the state, so
+///   there's no need for an in-memory type to do the book-keeping.
+impl<F: Fn(&Vec<String>, &[int], int) -> (DMatrixPtr, DMatrixPtr)> DMatrixStore for F
 {
-  trn: PathBuf,
-  tst: PathBuf,
-}
-
-impl Agaricus
-{
-  pub fn new<P1: AsRef<Path>, P2: AsRef<Path>>(trn_p: P1, tst_p: P2) -> Self
+  fn get(&self, features: &Vec<String>, trn_dates: &[int], tst_date: int) -> (DMatrixPtr, DMatrixPtr)
   {
-    Self
-    {
-      trn: trn_p.as_ref().to_owned(),
-      tst: tst_p.as_ref().to_owned(),
-    }
+    self(features, trn_dates, tst_date)
   }
 }
 
-impl Default for Agaricus
+/// Dummy DMatrixStore; just returns `agaricus.txt` train and test sets.
+pub fn agaricus( _: &Vec<String>, _: &[int], _: int) -> (DMatrixPtr, DMatrixPtr)
 {
-  fn default() -> Self
-  {
-    Self::new("agaricus.txt.train", "agaricus.txt.test")
-  }
-}
-
-impl DMatrixStore for Agaricus
-{
-  fn get(&self, _: &Vec<String>, _: &[int], _: int) -> (DMatrixPtr, DMatrixPtr)
-  {
-    return (self.trn.clone().into(), self.tst.clone().into())
-  }
+  return (
+    "agaricus.txt.train".into(),
+    "agaricus.txt.test".into()
+  )
 }
 

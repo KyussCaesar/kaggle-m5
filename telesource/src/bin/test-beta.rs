@@ -1,6 +1,11 @@
-//! testing playground
+//! second testing playground
+//! 
+//! this time, trying out new impl of DMatrixStore for Fn.
+//!
+//! This method just uses a function to build the DM, which in turn calls out to
+//! an R script.
 
-use log::info;
+use std::process::Command;
 
 use env_logger;
 
@@ -9,7 +14,7 @@ use telesource::prelude::*;
 use telesource::{
   cvdb,
   hypothesis_store,
-  dmatrix_store,
+  dmatrixptr::DMatrixPtr,
   model_store,
 };
 
@@ -29,8 +34,6 @@ fn end_of_run(
   hyp: &Hypothesis
 )
 {
-  info!("end of run {} for hyp {}", run_id, hyp_id);
-
   if hyp_id != 0
   {
     // get the scores of the current hypothesis and the last hypothesis.
@@ -40,17 +43,12 @@ fn end_of_run(
     // score hasn't been recorded yet, we can't make progress.
     if prev_score.is_none() { return; }
 
-    let (prev_score, _) = prev_score.unwrap();
-    let (this_score, _) = cvdb.get(run_id, hyp_id).unwrap();
-
-    // nb^; the ".unwrap()" just means "crash the program if the value is not available".
-    // obviously in a real system, you'd want to handle this more gracefully!
+    let prev_score = prev_score.unwrap();
+    let this_score = cvdb.get(run_id, hyp_id).unwrap();
 
     // compare the score for this run against the previous
     if this_score < prev_score
     {
-      info!("Found a better score! {} -> {}", prev_score, this_score);
-
       // this one did better than the last one!
       // derive a new hypothesis based on that fact.
       //
@@ -59,8 +57,6 @@ fn end_of_run(
       // from there...
       let new_h = hyp.derive_new(|h| {
         h.xgb_max_depth += 1;
-
-        info!("Proposing a new hypothesis: max_depth={}", h.xgb_max_depth);
       });
 
       // put the new hypothesis into the hypothesis store and record the ID
@@ -79,11 +75,46 @@ fn end_of_run(
   // the "previous" one.
 }
 
+/// builds DM from R script.
+fn build_dm_rscript(features: &Vec<String>, trn_dates: &[int], tst_date: int) -> (DMatrixPtr, DMatrixPtr)
+{
+   // TODO: pass output location as --output <location>?
+   let trn = {
+     let mut trn = Command::new("create-dm.R");
+     trn
+       .arg("--features")
+       .args(features)
+       .arg("--dates");
+
+     for d in trn_dates
+     {
+       trn.arg(d.to_string());
+     }
+
+     dbg!(&trn);
+
+     trn.output().expect("building training set failed").stdout
+   };
+
+   let tst = {
+     let mut tst = Command::new("create-dm.R");
+     tst
+       .arg("--features")
+       .args(features)
+       .arg("--dates")
+       .arg(tst_date.to_string());
+
+     dbg!(&tst);
+
+     tst.output().expect("building testing set failed").stdout
+   };
+
+  return (String::from_utf8(trn).unwrap().into(), String::from_utf8(tst).unwrap().into());
+}
+
 fn main()
 {
   env_logger::init();
-
-  info!("begin experiment test-alpha");
 
   // create a new "CVDB"
   // I guess the name is short for "cross-validation database", but don't read
@@ -115,11 +146,15 @@ fn main()
   //
   // in this example hyp1 is the same as the default, but with max_depth = 2.
   let hyp1 = hyp_default.derive_new(|h| {
-    h.xgb_max_depth = 2;
+    h.features.push(
+      "tgt_volume_1".into()
+    );
   });
 
   let hyp2 = hyp1.derive_new(|h| {
-    h.xgb_max_depth += 1;
+    h.features.push(
+      "some_additional_feature".into()
+    );
   });
 
   // put the hypotheses in the store and record the IDs.
@@ -150,10 +185,9 @@ fn main()
   // objects, storing them somewhere, and returning a "DMatrix pointer" type, which
   // can be used to load the DMatrix into memory only when it's actually needed.
   //
-  // in this example, we just always return the example data from the XGBoost
-  // library, but in practise you could want e.g a type that stores the DMatrix on-disk
-  // in some format, and returns the name of the file that the objects are stored in.
-  let mut ds = dmatrix_store::agaricus;
+  // in this example, we've written a function that calls an R script to build
+  // the DMatrix.
+  let mut ds = build_dm_rscript;
 
   // create ModelStore
   //
@@ -172,7 +206,7 @@ fn main()
     &mut hs,         // db to store hypotheses in
     &mut ds,         // object which knows how to build DMatrix from your Hypothesis
     &mut ms,         // object which knows how to train models based on your Hypothesis
-    905678 as usize, // seed for RNG; this is to allow repeatable tests/test id
+    79242 as usize,  // seed for RNG; this is to allow repeatable tests/test id
     end_of_run,      // callback invoked at the end of each run
   );
 
